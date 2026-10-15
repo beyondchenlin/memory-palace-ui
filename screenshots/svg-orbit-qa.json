@@ -1,0 +1,74 @@
+{
+  "allPass": true,
+  "results": [
+    {
+      "step": "front",
+      "rotX": 0,
+      "rotY": 0,
+      "maxYaw": 80,
+      "maxPitch": 68
+    },
+    {
+      "step": "setYaw120_clamped",
+      "rotX": 0,
+      "rotY": 80,
+      "maxYaw": 80,
+      "maxPitch": 68,
+      "pass": true
+    },
+    {
+      "step": "setYawNeg120_clamped",
+      "rotX": 0,
+      "rotY": -80,
+      "maxYaw": 80,
+      "maxPitch": 68,
+      "pass": true
+    },
+    {
+      "step": "dragEmptyRight",
+      "rotX": 0,
+      "rotY": 80,
+      "maxYaw": 80,
+      "maxPitch": 68,
+      "pass": true,
+      "note": "yaw should rise but never exceed 80"
+    },
+    {
+      "step": "dblclickOutsideReset",
+      "rotX": 0,
+      "rotY": 0,
+      "maxYaw": 80,
+      "maxPitch": 68,
+      "dblAt": {
+        "dblX": 362.31170654296875,
+        "dblY": 500
+      },
+      "yawBefore": 80,
+      "pass": true
+    },
+    {
+      "step": "screenClick",
+      "found": true,
+      "fired": true,
+      "id": "finish-chip-home",
+      "pass": true
+    },
+    {
+      "step": "chromeButtonNoOrbitSteal",
+      "before": {
+        "rotX": 0,
+        "rotY": 0,
+        "maxYaw": 80,
+        "maxPitch": 68
+      },
+      "afterBtn": {
+        "rotX": 0,
+        "rotY": 0,
+        "maxYaw": 80,
+        "maxPitch": 68
+      },
+      "pass": true
+    }
+  ],
+  "maxYaw": 80
+}

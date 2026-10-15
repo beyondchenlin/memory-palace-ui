@@ -866,3 +866,16 @@ body.is-real-phone .device-rig {
   background: color-mix(in srgb, #58cc02 42%, rgba(0, 0, 0, 0.45));
   border-color: color-mix(in srgb, #58cc02 70%, #fff);
 }
+
+
+/* Page-level orbit: grabbing cursor while dragging from empty space */
+body.is-shell-orbiting,
+body.is-shell-orbiting * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+body.is-shell-orbiting .device-screen,
+body.is-shell-orbiting .device-screen * {
+  /* keep screen from looking grabby mid-orbit if pointer drifts over it */
+  cursor: grabbing !important;
+}

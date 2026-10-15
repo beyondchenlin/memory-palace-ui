@@ -36,6 +36,10 @@
   if (!stage || !unit || !rig) return;
 
   // Rotation state (deg)
+  // Left/right (rotY) hard-capped at ±80 so the phone never stands on edge.
+  // Up/down (rotX) stays the prior gentle clamp.
+  const MAX_YAW = 80;
+  const MAX_PITCH = 68;
   let rotX = 0;
   let rotY = 0;
   let dragging = false;
@@ -44,6 +48,7 @@
   let lastY = 0;
   let hoverTiltX = 0;
   let hoverTiltY = 0;
+  let activePointerId = null;
 
   function tShell(key, fallback) {
     try {
@@ -74,6 +79,34 @@
     return screenEl.contains(target) || (target.closest && target.closest(".device-screen"));
   }
 
+  function isOverPhoneShell(target) {
+    if (!target || !unit) return false;
+    return unit.contains(target) || (target.closest && target.closest("#device-unit, .device-unit"));
+  }
+
+  /** Buttons / pickers / pet / top bar — never start orbit or dblclick-reset on these. */
+  function isInteractiveChrome(target) {
+    if (!target || !target.closest) return false;
+    return !!target.closest(
+      "button, a, input, select, textarea, label, option," +
+        "[role='button'], [role='option'], [role='tab'], [role='listbox']," +
+        ".shell-bar, .stage-bar, .lang-switch, .screen-tabs," +
+        "#stage-pet, .stage-pet, .finish-popover, .finish-wrap"
+    );
+  }
+
+  function clampOrbit() {
+    rotX = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, rotX));
+    rotY = Math.max(-MAX_YAW, Math.min(MAX_YAW, rotY));
+  }
+
+  /** Empty page / bezel / glow — OK to orbit. Not screen UI, not chrome controls. */
+  function canStartOrbit(target) {
+    if (isOverScreen(target)) return false;
+    if (isInteractiveChrome(target)) return false;
+    return true;
+  }
+
   function applyTransform() {
     if (isRealPhone()) {
       unit.style.setProperty("--shell-tilt-x", "0deg");
@@ -85,9 +118,8 @@
     const y = rotY + hoverTiltY;
     unit.style.setProperty("--shell-tilt-x", x.toFixed(2) + "deg");
     unit.style.setProperty("--shell-tilt-y", y.toFixed(2) + "deg");
-    // When mostly showing the back, disable front screen hits
-    const backFacing = Math.abs(((y % 360) + 360) % 360 - 180) < 90;
-    unit.classList.toggle("is-back", backFacing);
+    // With ±80 yaw we stay front-ish; keep class off so screen stays clickable
+    unit.classList.toggle("is-back", false);
   }
 
   function fitScale() {
@@ -213,11 +245,13 @@
 
   /* —— Interaction: screen clicks ALWAYS win ——
      Hover tilt: only when pointer is over rig but NOT over .device-screen
-     Drag rotate: pointerdown on bezel/rim/back (not screen); move rotates */
+     Drag rotate: empty page / bezel (not screen, not chrome buttons)
+     Dblclick outside phone shell → reset flat front
+     Left/right yaw clamped ±80°; pitch unchanged (±68) */
   function onHoverMove(e) {
     if (isRealPhone() || prefersReduced() || dragging) return;
     const target = e.target;
-    if (isOverScreen(target)) {
+    if (isOverScreen(target) || !rig.contains(target)) {
       hoverTiltX = 0;
       hoverTiltY = 0;
       applyTransform();
@@ -246,12 +280,11 @@
 
   function onPointerDown(e) {
     if (isRealPhone() || prefersReduced()) return;
-    // Never start orbit from inside the interactive screen
-    if (isOverScreen(e.target)) return;
-    // Ignore UI chrome outside unit (shell-bar is outside rig usually)
-    if (e.target.closest && e.target.closest(".shell-bar")) return;
+    if (e.button != null && e.button !== 0) return;
+    if (!canStartOrbit(e.target)) return;
     dragging = true;
     dragMoved = false;
+    activePointerId = e.pointerId;
     lastX = e.clientX;
     lastY = e.clientY;
     hoverTiltX = 0;
@@ -259,14 +292,18 @@
     stage.classList.remove("is-floating");
     stage.classList.add("is-dragging");
     unit.classList.add("is-dragging");
+    document.body.classList.add("is-shell-orbiting");
     try {
-      rig.setPointerCapture(e.pointerId);
+      // Capture on the start target so empty-page drags keep receiving moves
+      if (e.currentTarget && e.currentTarget.setPointerCapture) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
     } catch (_) {}
   }
 
   function onPointerMove(e) {
-    if (!dragging) {
-      onHoverMove(e);
+    if (!dragging || (activePointerId != null && e.pointerId !== activePointerId)) {
+      if (!dragging) onHoverMove(e);
       return;
     }
     const dx = e.clientX - lastX;
@@ -276,24 +313,24 @@
     lastY = e.clientY;
     rotY += dx * 0.45;
     rotX -= dy * 0.35;
-    // Clamp extreme flips a bit for usability (still allow back view)
-    rotX = Math.max(-68, Math.min(68, rotX));
-    // Keep Y free for full spin
-    while (rotY > 180) rotY -= 360;
-    while (rotY < -180) rotY += 360;
+    clampOrbit();
     applyTransform();
   }
 
   function onPointerUp(e) {
     if (!dragging) return;
+    if (activePointerId != null && e.pointerId !== activePointerId) return;
     dragging = false;
+    activePointerId = null;
     stage.classList.remove("is-dragging");
     unit.classList.remove("is-dragging");
+    document.body.classList.remove("is-shell-orbiting");
     if (!isRealPhone() && !prefersReduced()) stage.classList.add("is-floating");
     try {
-      rig.releasePointerCapture(e.pointerId);
+      if (e.currentTarget && e.currentTarget.releasePointerCapture) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
     } catch (_) {}
-    // If user barely moved, treat as click-through (no prevent)
   }
 
   function resetOrbit() {
@@ -301,19 +338,28 @@
     rotY = 0;
     hoverTiltX = 0;
     hoverTiltY = 0;
+    clampOrbit();
     applyTransform();
   }
 
-  // Wire orbit on rig — screen children keep their own clicks
-  // Use pointer events in bubble phase; screen buttons fire first on their targets
-  rig.addEventListener("pointerdown", onPointerDown);
-  rig.addEventListener("pointermove", onPointerMove);
-  rig.addEventListener("pointerup", onPointerUp);
-  rig.addEventListener("pointercancel", onPointerUp);
+  function onDblClickOutside(e) {
+    if (isRealPhone() || prefersReduced()) return;
+    // Double-click empty area outside the phone shell → flat front
+    if (isOverPhoneShell(e.target)) return;
+    if (isInteractiveChrome(e.target)) return;
+    e.preventDefault();
+    resetOrbit();
+  }
+
+  // Page-level orbit: empty background + bezel. Screen UI keeps its own clicks.
+  document.addEventListener("pointerdown", onPointerDown);
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
+  document.addEventListener("pointercancel", onPointerUp);
   rig.addEventListener("pointerleave", onHoverLeave);
+  document.addEventListener("dblclick", onDblClickOutside);
 
   // Hard guarantee: interactive screen keeps auto hit-testing.
-  // Orbit pointerdown already ignores targets inside .device-screen (isOverScreen).
   // Do NOT stopPropagation on capture — that would kill button clicks.
   if (screenEl) {
     screenEl.style.pointerEvents = "auto";
@@ -323,13 +369,14 @@
   const resetBtn = document.getElementById("shell-reset");
   if (resetBtn) resetBtn.addEventListener("click", resetOrbit);
 
-  // Flip to back helper
+  // Side peek helper (yaw capped at ±80 — no full flip past edge)
   const flipBtn = document.getElementById("shell-flip");
   if (flipBtn) {
     flipBtn.addEventListener("click", () => {
-      if (Math.abs(rotY) > 90) rotY = 0;
-      else rotY = 180;
+      if (Math.abs(rotY) > 40) rotY = 0;
+      else rotY = rotY < 0 ? -MAX_YAW : MAX_YAW;
       rotX = 0;
+      clampOrbit();
       applyTransform();
     });
   }
@@ -382,8 +429,18 @@
     applyShell: applyFinish,
     isRealPhone,
     resetOrbit,
+    getOrbit() {
+      return { rotX, rotY, maxYaw: MAX_YAW, maxPitch: MAX_PITCH };
+    },
+    setOrbit(x, y) {
+      rotX = Number(x) || 0;
+      rotY = Number(y) || 0;
+      clampOrbit();
+      applyTransform();
+      return this.getOrbit();
+    },
     enableSyncTiltExperimental() {
-      console.info("[LT shell] Sync tilt deferred — drag bezel to orbit on desktop.");
+      console.info("[LT shell] Sync tilt deferred — drag empty space to orbit on desktop.");
       return false;
     },
   };
@@ -392,6 +449,6 @@
     const label = document.querySelector("[data-i18n='shellLabel']");
     if (label && !label.textContent) label.textContent = tShell("shellLabel", "Device shell");
     const hint = document.querySelector("[data-i18n='shellHint']");
-    if (hint) hint.textContent = tShell("shellHint", "Drag the frame to rotate · tap the screen to practice");
+    if (hint) hint.textContent = tShell("shellHint", "Drag empty space to rotate (±80°) · double-click outside phone to reset · tap screen to practice");
   });
 })();
