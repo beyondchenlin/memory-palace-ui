@@ -1,0 +1,93 @@
+{
+  "boot": {
+    "glued": true,
+    "failed": false,
+    "loadMs": 107,
+    "hasCss3d": true,
+    "hasWebgl": true,
+    "screenCss3d": true,
+    "railTop": false,
+    "typing": false,
+    "unitTilt": "none",
+    "credit": "iPhone 17 Pro Max by MajdyModels (CC BY 4.0) · meshopt · loaded 107ms · glued CSS3D screen",
+    "shell": true
+  },
+  "results": [
+    {
+      "name": "gltf-glue-boot",
+      "pass": true,
+      "detail": "loadMs=107"
+    },
+    {
+      "name": "no-top-rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-typing-strip",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-css-unit-tilt",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "shell-api",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "orbit-moves-glued-screen",
+      "pass": true,
+      "detail": "rotY=88.3 d=280.7"
+    },
+    {
+      "name": "screen-still-css3d",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "still-glued-after-drag",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "hard-drag-no-desync",
+      "pass": true,
+      "detail": "{\"glued\":true,\"cls\":\"device-screen is-css3d-screen\",\"rot\":{\"x\":28,\"y\":243.83999999999986},\"facing\":false,\"w\":248.9727783203125,\"h\":1041.0438232421875}"
+    },
+    {
+      "name": "dblclick-reset",
+      "pass": true,
+      "detail": "{\"x\":0,\"y\":0}"
+    },
+    {
+      "name": "start-on-glass",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pet-no-glow",
+      "pass": true,
+      "detail": "{\"filter\":\"none\",\"bub\":\"none\"}"
+    },
+    {
+      "name": "no-fatal-console",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-critical-404",
+      "pass": true,
+      "detail": "http://127.0.0.1:8898/favicon.ico"
+    }
+  ],
+  "notfound": [
+    "http://127.0.0.1:8898/favicon.ico"
+  ],
+  "conserr": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

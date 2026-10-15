@@ -1,0 +1,63 @@
+{
+  "results": [
+    {
+      "name": "boot-texture-glue",
+      "pass": true,
+      "detail": "loadMs=141"
+    },
+    {
+      "name": "boot-facing-overlay",
+      "pass": true,
+      "detail": "facing=true overlay=true"
+    },
+    {
+      "name": "boot-projection",
+      "pass": true,
+      "detail": "{\"left\":436.96777206788545,\"top\":408.76171919714113,\"width\":198.11157045044513,\"height\":424.4765615980417}"
+    },
+    {
+      "name": "boot-overlay-matches-proj",
+      "pass": true,
+      "detail": "dw=11.1 dh=23.8"
+    },
+    {
+      "name": "boot-overlay-not-fullstage",
+      "pass": true,
+      "detail": "hFrac=0.441"
+    },
+    {
+      "name": "boot-capture-good",
+      "pass": true,
+      "detail": "lastGood=3706.699999988079"
+    },
+    {
+      "name": "tilt30-showcase-uv",
+      "pass": true,
+      "detail": "{\"facing\":false,\"overlay\":false,\"parked\":true}"
+    },
+    {
+      "name": "tilt40-showcase-uv",
+      "pass": true,
+      "detail": "{\"facing\":false,\"overlay\":false}"
+    },
+    {
+      "name": "magenta-paint",
+      "pass": true,
+      "detail": "{\"ok\":true,\"mesh\":\"Cube010_screen001_0\",\"hasMap\":true}"
+    },
+    {
+      "name": "no-pageerror",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "conserr": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[info] [palace] bump-aware yaw 1.571 score 0.874",
+    "[info] [palace] hid back/cover Cube010_black002_0",
+    "[info] [palace] hid back/cover Cube010_glass002_0",
+    "[info] [palace] UV display mesh Cube010_screen001_0 (front screen.001)",
+    "[info] [palace] chassis ready 141 ms",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

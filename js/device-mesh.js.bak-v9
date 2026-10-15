@@ -1,0 +1,881 @@
+/* Memory Palace v9 — Mockiosa UV glue
+   CanvasTexture on the glass mesh (zero CSS crop) + front-facing HTML hit overlay.
+   One GLB · shared orbit root · silky damped rotation from shell. */
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { toCanvas } from "html-to-image";
+
+const PX_W = 390;
+const PX_H = 844;
+const SAFE_INSET = 1.0; /* fill glass edge-to-edge */
+const FRONT_DOT = 0.82; /* ~cos(35°) — HTML hit only when nearly front; else UV texture */
+
+const CHASSIS = {
+  id: "17pm",
+  label: "iPhone 17 Pro Max",
+  url: "assets/models/iphone-17-pro-max.min.glb",
+  fallbackUrl: "assets/models/iphone-17-pro-max.glb",
+  screenMat: "screen.001",
+  rot: [0, Math.PI / 2, 0],
+  credit: "iPhone 17 Pro Max by MajdyModels (CC BY 4.0) · meshopt · CanvasTexture glass",
+};
+
+function makeBackTexture(line) {
+  const c = document.createElement("canvas");
+  c.width = 1024;
+  c.height = 2048;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#0c0e12";
+  ctx.fillRect(0, 0, c.width, c.height);
+  const g = ctx.createRadialGradient(512, 900, 80, 512, 980, 700);
+  g.addColorStop(0, "rgba(88,204,2,0.18)");
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = "#58cc02";
+  ctx.beginPath();
+  ctx.arc(512, 720, 54, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#0c0e12";
+  ctx.font = "bold 54px Nunito, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("LT", 512, 738);
+  ctx.fillStyle = "#f4f7f2";
+  ctx.font = "800 72px Nunito, system-ui, sans-serif";
+  ctx.fillText("LingoTrace", 512, 980);
+  ctx.fillStyle = "rgba(244,247,242,0.78)";
+  ctx.font = "600 36px Nunito, system-ui, sans-serif";
+  wrapText(ctx, line || "Hear it. Type it. Keep it.", 512, 1080, 720, 48);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function wrapText(ctx, text, x, y, maxW, lineH) {
+  const words = String(text).split(/\s+/);
+  let line = "";
+  let yy = y;
+  for (let i = 0; i < words.length; i++) {
+    const test = line ? line + " " + words[i] : words[i];
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, yy);
+      line = words[i];
+      yy += lineH;
+    } else line = test;
+  }
+  if (line) ctx.fillText(line, x, yy);
+}
+
+export function createDeviceMesh(opts = {}) {
+  const mount = opts.mount;
+  const creditEl = opts.creditEl;
+  const screenEl = opts.screenEl || document.querySelector(".device-screen");
+  if (!mount) throw new Error("device-mesh: mount required");
+
+  const glued = !!screenEl;
+
+  const placeholder = document.createElement("div");
+  placeholder.className = "device-placeholder";
+  placeholder.setAttribute("aria-hidden", "true");
+  placeholder.innerHTML =
+    '<div class="device-placeholder-body"><div class="device-placeholder-glass"></div></div>';
+  mount.appendChild(placeholder);
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance",
+  });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.domElement.className = "device-webgl";
+  renderer.domElement.setAttribute("aria-hidden", "true");
+  renderer.domElement.style.pointerEvents = "none";
+  mount.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 40);
+  camera.position.set(0, 0, 7.2);
+
+  const key = new THREE.DirectionalLight(0xffffff, 2.1);
+  key.position.set(2.4, 3.2, 4.2);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xb8d4ff, 0.55);
+  fill.position.set(-3.2, 0.6, 2.2);
+  scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xffffff, 0.7);
+  rim.position.set(-1.2, -2.4, -3.5);
+  scene.add(rim);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+  scene.add(new THREE.HemisphereLight(0xe8eef8, 0x2a2e35, 0.55));
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  const loader = new GLTFLoader();
+  try {
+    loader.setMeshoptDecoder(MeshoptDecoder);
+  } catch (_) {}
+
+  let phone = null;
+  let screenMesh = null;
+  let screenMat = null;
+  let uiCanvas = null;
+  let uiTex = null;
+  let captureHost = null;
+  let rotX = 0;
+  let rotY = 0;
+  let running = true;
+  let backLine = opts.backLine || "Hear it. Type it. Keep it.";
+  let backTex = makeBackTexture(backLine);
+  let facingCamera = true;
+  let overlayMode = false;
+  let loadMs = 0;
+  let captureBusy = false;
+  let captureQueued = false;
+  let lastCapture = 0;
+  let mutObs = null;
+
+  function resize() {
+    const w = Math.max(1, mount.clientWidth);
+    const h = Math.max(1, mount.clientHeight);
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  function fitPhone(obj) {
+    const box = new THREE.Box3().setFromObject(obj);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    obj.position.sub(center);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const target = 2.55; /* leave margin so 45° orbit never hits canvas edge */
+    obj.scale.setScalar(target / (maxDim || 1));
+    const box2 = new THREE.Box3().setFromObject(obj);
+    const c2 = box2.getCenter(new THREE.Vector3());
+    obj.position.sub(c2);
+  }
+
+  function applyBackContent(rootObj) {
+    rootObj.traverse((o) => {
+      if (!o.isMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach((m) => {
+        if (!m) return;
+        const n = (m.name || "").toLowerCase();
+        if (n.includes("backpanel") || n.includes("logo_face") || n === "back glass") {
+          const clone = m.clone();
+          clone.map = backTex;
+          clone.emissiveMap = backTex;
+          clone.emissive = new THREE.Color(0xffffff);
+          clone.emissiveIntensity = 0.55;
+          clone.color = new THREE.Color(0x111318);
+          clone.roughness = 0.55;
+          clone.metalness = 0.15;
+          clone.needsUpdate = true;
+          if (Array.isArray(o.material)) {
+            o.material = mats.map((x) => (x === m ? clone : x));
+          } else o.material = clone;
+        }
+      });
+    });
+  }
+
+  function findScreenMesh(rootObj, screenName) {
+    let found = null;
+    rootObj.traverse((o) => {
+      if (!o.isMesh || found) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (!m) continue;
+        const n = (m.name || "").toLowerCase();
+        if (m.name === screenName || n.includes("screen") || n === "oled") {
+          found = o;
+          return;
+        }
+      }
+    });
+    return found;
+  }
+
+  function getScreenOutwardNormal(mesh) {
+    mesh.updateWorldMatrix(true, false);
+    const geom = mesh.geometry;
+    if (!geom) return new THREE.Vector3(0, 0, 1);
+    if (!geom.boundingBox) geom.computeBoundingBox();
+    if (geom.attributes && geom.attributes.normal) {
+      const nAttr = geom.attributes.normal;
+      const acc = new THREE.Vector3();
+      const tmp = new THREE.Vector3();
+      const step = Math.max(1, Math.floor(nAttr.count / 200));
+      let c = 0;
+      for (let i = 0; i < nAttr.count; i += step) {
+        tmp.fromBufferAttribute(nAttr, i);
+        acc.add(tmp);
+        c++;
+      }
+      if (c) acc.multiplyScalar(1 / c).normalize();
+      acc.transformDirection(mesh.matrixWorld).normalize();
+      return acc;
+    }
+    const bb = geom.boundingBox;
+    const sz = new THREE.Vector3();
+    bb.getSize(sz);
+    let axis = new THREE.Vector3(0, 0, 1);
+    if (sz.x <= sz.y && sz.x <= sz.z) axis.set(1, 0, 0);
+    else if (sz.y <= sz.x && sz.y <= sz.z) axis.set(0, 1, 0);
+    axis.transformDirection(mesh.matrixWorld).normalize();
+    return axis;
+  }
+
+  function ensureCaptureHost() {
+    if (captureHost) return captureHost;
+    captureHost = document.createElement("div");
+    captureHost.className = "device-screen-capture-host";
+    captureHost.setAttribute("aria-hidden", "true");
+    document.body.appendChild(captureHost);
+    return captureHost;
+  }
+
+  function parkScreenForCapture() {
+    if (!screenEl) return;
+    const host = ensureCaptureHost();
+    if (screenEl.parentElement !== host) host.appendChild(screenEl);
+    screenEl.classList.add("is-texture-screen");
+    screenEl.classList.remove("is-css3d-screen", "is-overlay-screen");
+    screenEl.style.cssText = "";
+    screenEl.style.width = PX_W + "px";
+    screenEl.style.height = PX_H + "px";
+    screenEl.style.pointerEvents = "none";
+    overlayMode = false;
+  }
+
+  async function captureUiToTexture(force) {
+    if (!glued || !screenEl || !uiTex || !uiCanvas) return;
+    if (captureBusy) {
+      captureQueued = true;
+      return;
+    }
+    const now = performance.now();
+    if (!force && now - lastCapture < 240) return;
+    captureBusy = true;
+    const wasOverlay = overlayMode;
+    try {
+      /* Capture from a stable offscreen host so layout metrics are PX_W×PX_H */
+      parkScreenForCapture();
+      /* Force layout */
+      void screenEl.offsetWidth;
+      const phoneInner = screenEl.querySelector(".phone") || screenEl;
+      phoneInner.style.width = PX_W + "px";
+      phoneInner.style.height = PX_H + "px";
+      const shot = await toCanvas(phoneInner, {
+        width: PX_W,
+        height: PX_H,
+        canvasWidth: PX_W,
+        canvasHeight: PX_H,
+        pixelRatio: 2,
+        cacheBust: true,
+        skipFonts: true,
+        backgroundColor: "#050608",
+        style: {
+          transform: "none",
+          inset: "auto",
+          left: "0",
+          top: "0",
+          position: "relative",
+          width: PX_W + "px",
+          height: PX_H + "px",
+          margin: "0",
+          opacity: "1",
+        },
+      });
+      const ctx = uiCanvas.getContext("2d");
+      ctx.fillStyle = "#050608";
+      ctx.fillRect(0, 0, uiCanvas.width, uiCanvas.height);
+      const padX = ((1 - SAFE_INSET) / 2) * uiCanvas.width;
+      const padY = ((1 - SAFE_INSET) / 2) * uiCanvas.height;
+      ctx.drawImage(
+        shot,
+        padX,
+        padY,
+        uiCanvas.width - padX * 2,
+        uiCanvas.height - padY * 2
+      );
+      uiTex.needsUpdate = true;
+      lastCapture = performance.now();
+      console.info("[palace] UI texture captured", shot.width, "x", shot.height);
+    } catch (err) {
+      console.warn("[palace] UI texture capture failed", err && err.message ? err.message : err);
+    } finally {
+      captureBusy = false;
+      /* Restore overlay if we were front-facing */
+      if (wasOverlay && facingCamera) {
+        showOverlay();
+      }
+      if (captureQueued) {
+        captureQueued = false;
+        captureUiToTexture(true);
+      }
+    }
+  }
+
+  function projectScreenClientRect() {
+    if (!screenMesh || !mount) return null;
+    /* Project using the WebGL canvas box — not a parent that may scroll/offset oddly */
+    const canvas = renderer.domElement;
+    const mrect = canvas.getBoundingClientRect();
+    if (mrect.width < 8 || mrect.height < 8) return null;
+
+    screenMesh.updateWorldMatrix(true, false);
+    const geom = screenMesh.geometry;
+    if (!geom) return null;
+    if (!geom.boundingBox) geom.computeBoundingBox();
+    const bb = geom.boundingBox;
+    const sz = new THREE.Vector3();
+    bb.getSize(sz);
+    /* Build 4 corners of the dominant face in local geom space */
+    const c = new THREE.Vector3();
+    bb.getCenter(c);
+    let u = new THREE.Vector3(1, 0, 0);
+    let v = new THREE.Vector3(0, 1, 0);
+    if (sz.x <= sz.y && sz.x <= sz.z) {
+      u.set(0, 1, 0);
+      v.set(0, 0, 1);
+    } else if (sz.y <= sz.x && sz.y <= sz.z) {
+      u.set(1, 0, 0);
+      v.set(0, 0, 1);
+    }
+    const hu = Math.max(sz.x, sz.y, sz.z) * 0.5;
+    const hv = ([sz.x, sz.y, sz.z].sort((a, b) => b - a)[1]) * 0.5;
+    /* Recompute u/v lengths from actual face dims */
+    let faceW;
+    let faceH;
+    if (sz.x <= sz.y && sz.x <= sz.z) {
+      faceW = sz.z;
+      faceH = sz.y;
+      u.set(0, 0, 1);
+      v.set(0, 1, 0);
+    } else if (sz.y <= sz.x && sz.y <= sz.z) {
+      faceW = sz.x;
+      faceH = sz.z;
+      u.set(1, 0, 0);
+      v.set(0, 0, 1);
+    } else {
+      faceW = sz.x;
+      faceH = sz.y;
+      u.set(1, 0, 0);
+      v.set(0, 1, 0);
+    }
+    const cornersLocal = [
+      c.clone().addScaledVector(u, faceW / 2).addScaledVector(v, faceH / 2),
+      c.clone().addScaledVector(u, -faceW / 2).addScaledVector(v, faceH / 2),
+      c.clone().addScaledVector(u, faceW / 2).addScaledVector(v, -faceH / 2),
+      c.clone().addScaledVector(u, -faceW / 2).addScaledVector(v, -faceH / 2),
+    ];
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    const p = new THREE.Vector3();
+    for (let i = 0; i < cornersLocal.length; i++) {
+      p.copy(cornersLocal[i]).applyMatrix4(screenMesh.matrixWorld).project(camera);
+      if (Math.abs(p.z) > 1.05) continue;
+      const x = (p.x * 0.5 + 0.5) * mrect.width + mrect.left;
+      const y = (-p.y * 0.5 + 0.5) * mrect.height + mrect.top;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    if (!isFinite(minX) || maxX - minX < 8 || maxY - minY < 8) {
+      /* Fallback: centered glass estimate inside canvas */
+      const screenH = mrect.height * 0.7;
+      const screenW = screenH * (PX_W / PX_H);
+      return {
+        left: mrect.left + (mrect.width - screenW) / 2,
+        top: mrect.top + (mrect.height - screenH) / 2,
+        width: screenW,
+        height: screenH,
+      };
+    }
+    const w = maxX - minX;
+    const h = maxY - minY;
+    const ix = w * ((1 - SAFE_INSET) / 2);
+    const iy = h * ((1 - SAFE_INSET) / 2);
+    return {
+      left: minX + ix,
+      top: minY + iy,
+      width: w - ix * 2,
+      height: h - iy * 2,
+    };
+  }
+
+  function glassRectForOverlay() {
+    const canvas = renderer.domElement;
+    const crect = canvas.getBoundingClientRect();
+    /* Empirically fill the GLB glass: ~76% of mount height, phone aspect */
+    const screenH = crect.height * 0.84;
+    const screenW = screenH * (PX_W / PX_H);
+    return {
+      left: crect.left + (crect.width - screenW) / 2,
+      top: crect.top + (crect.height - screenH) / 2,
+      width: screenW,
+      height: screenH,
+      crect,
+    };
+  }
+
+  function showOverlay() {
+    if (!screenEl || !facingCamera) return;
+    const base = glassRectForOverlay();
+    let r = { left: base.left, top: base.top, width: base.width, height: base.height };
+    const crect = base.crect;
+    const proj = projectScreenClientRect();
+    if (proj) {
+      const overlaps =
+        proj.left < crect.right - 8 &&
+        proj.left + proj.width > crect.left + 8 &&
+        proj.top < crect.bottom - 8 &&
+        proj.top + proj.height > crect.top + 8 &&
+        proj.width > base.width * 0.55 &&
+        proj.height > base.height * 0.55;
+      if (overlaps) {
+        r = {
+          left: proj.left * 0.35 + base.left * 0.65,
+          top: proj.top * 0.35 + base.top * 0.65,
+          width: proj.width * 0.35 + base.width * 0.65,
+          height: proj.height * 0.35 + base.height * 0.65,
+        };
+      }
+    }
+    if (screenEl.parentElement !== document.body) {
+      document.body.appendChild(screenEl);
+    }
+    screenEl.classList.add("is-overlay-screen", "is-texture-screen");
+    screenEl.classList.remove("is-css3d-screen");
+    screenEl.style.position = "fixed";
+    screenEl.style.setProperty("left", r.left + "px", "important");
+    screenEl.style.setProperty("top", r.top + "px", "important");
+    screenEl.style.setProperty("width", r.width + "px", "important");
+    screenEl.style.setProperty("height", r.height + "px", "important");
+    screenEl.style.setProperty("right", "auto", "important");
+    screenEl.style.setProperty("bottom", "auto", "important");
+    document.documentElement.style.setProperty("--overlay-left", r.left + "px");
+    document.documentElement.style.setProperty("--overlay-top", r.top + "px");
+    document.documentElement.style.setProperty("--overlay-width", r.width + "px");
+    document.documentElement.style.setProperty("--overlay-height", r.height + "px");
+    screenEl.style.zIndex = "6";
+    screenEl.style.pointerEvents = "auto";
+    screenEl.style.opacity = "1";
+    screenEl.style.transform = "none";
+    screenEl.style.margin = "0";
+    screenEl.setAttribute("aria-hidden", "false");
+    overlayMode = true;
+  }
+
+  function hideOverlayKeepTexture() {
+    if (!screenEl) return;
+    if (overlayMode) {
+      /* fire-and-forget snapshot so glass keeps last live frame */
+      captureUiToTexture(true);
+    }
+    parkScreenForCapture();
+    screenEl.style.opacity = "0";
+    screenEl.setAttribute("aria-hidden", "true");
+  }
+
+
+  /** Build 0–1 UVs on the dominant face so CanvasTexture maps correctly. */
+  function ensurePlanarUVs(mesh) {
+    const geom = mesh.geometry;
+    if (!geom || !geom.attributes.position) return;
+    if (!geom.boundingBox) geom.computeBoundingBox();
+    const bb = geom.boundingBox;
+    const size = new THREE.Vector3();
+    bb.getSize(size);
+    const min = bb.min;
+    /* Pick the two largest axes as the face */
+    const axes = [
+      { axis: "x", s: size.x },
+      { axis: "y", s: size.y },
+      { axis: "z", s: size.z },
+    ].sort((a, b) => b.s - a.s);
+    /* Portrait glass: V = longest axis (height), U = second (width) */
+    const vAxis = axes[0].axis;
+    const uAxis = axes[1].axis;
+    const vSize = Math.max(axes[0].s, 1e-6);
+    const uSize = Math.max(axes[1].s, 1e-6);
+    const pos = geom.attributes.position;
+    const uvs = new Float32Array(pos.count * 2);
+    const get = { x: (i) => pos.getX(i), y: (i) => pos.getY(i), z: (i) => pos.getZ(i) };
+    for (let i = 0; i < pos.count; i++) {
+      const u = (get[uAxis](i) - min[uAxis]) / uSize;
+      const v = (get[vAxis](i) - min[vAxis]) / vSize;
+      uvs[i * 2] = u;
+      uvs[i * 2 + 1] = 1 - v; /* flip V for canvas orientation */
+    }
+    geom.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+    geom.attributes.uv.needsUpdate = true;
+  }
+
+  function glueScreenUi(mesh) {
+    if (!glued || !screenEl) return;
+    screenMesh = mesh;
+
+    uiCanvas = document.createElement("canvas");
+    uiCanvas.width = PX_W * 2;
+    uiCanvas.height = PX_H * 2;
+    const ctx = uiCanvas.getContext("2d");
+    ctx.fillStyle = "#0a0c10";
+    ctx.fillRect(0, 0, uiCanvas.width, uiCanvas.height);
+    ctx.fillStyle = "#58cc02";
+    ctx.font = "bold 48px Nunito, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("LingoTrace", uiCanvas.width / 2, uiCanvas.height / 2);
+
+    uiTex = new THREE.CanvasTexture(uiCanvas);
+    uiTex.colorSpace = THREE.SRGBColorSpace;
+    uiTex.flipY = false; /* planar UVs already flip V */
+    uiTex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy?.() || 4);
+    uiTex.needsUpdate = true;
+
+    screenMat = new THREE.MeshBasicMaterial({
+      map: uiTex,
+      color: 0xffffff,
+      toneMapped: false,
+      side: THREE.DoubleSide,
+      depthWrite: true,
+      transparent: false,
+    });
+    /* After chassis yaw π/2, screen.001 (local −X) faces the camera; glass002
+       (local +X) is the BACK glass with camera holes — do NOT UV that. */
+    let phoneRoot = mesh;
+    while (phoneRoot.parent && phoneRoot.parent !== root && phoneRoot.parent.type !== "Scene") {
+      phoneRoot = phoneRoot.parent;
+    }
+    phoneRoot.traverse((o) => {
+      if (!o.isMesh || o === mesh) return;
+      const n = (o.name || "").toLowerCase();
+      if (n.includes("glass") || n.includes("black")) {
+        o.visible = false;
+        console.info("[palace] hid back/cover", o.name);
+      }
+    });
+    ensurePlanarUVs(mesh);
+    mesh.material = screenMat;
+    mesh.renderOrder = 10;
+    mesh.visible = true;
+    screenMesh = mesh;
+    console.info("[palace] UV display mesh", mesh.name, "(front screen.001)");
+
+    parkScreenForCapture();
+    document.body.classList.add("has-glued-screen", "has-texture-screen");
+
+    /* Give layout a tick so capture host has real box metrics, then snapshot */
+    requestAnimationFrame(() => {
+      captureUiToTexture(true);
+      setTimeout(() => captureUiToTexture(true), 400);
+      setTimeout(() => captureUiToTexture(true), 1200);
+    });
+    if (typeof MutationObserver !== "undefined") {
+      mutObs = new MutationObserver(() => {
+        if (facingCamera) captureUiToTexture(false);
+      });
+      mutObs.observe(screenEl, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+      });
+    }
+  }
+
+  function updateFacing() {
+    /* Face from shared orbit yaw — keep UI through moderate L/R tilt */
+    const yRad = THREE.MathUtils.degToRad(rotY);
+    const xRad = THREE.MathUtils.degToRad(rotX);
+    const faceDot = Math.cos(yRad) * Math.cos(xRad);
+    facingCamera = faceDot > FRONT_DOT;
+
+    if (!screenEl) return;
+    if (facingCamera) {
+      showOverlay();
+    } else {
+      if (overlayMode) {
+        /* snapshot before parking so orbit keeps last live frame */
+        captureUiToTexture(true);
+      }
+      hideOverlayKeepTexture();
+    }
+  }
+
+  async function loadChassis() {
+    const t0 = performance.now();
+    try {
+      if (MeshoptDecoder && MeshoptDecoder.ready) await MeshoptDecoder.ready;
+    } catch (_) {}
+    let gltf;
+    try {
+      gltf = await loader.loadAsync(CHASSIS.url);
+    } catch (err) {
+      console.warn("[palace] meshopt GLB failed, falling back", err);
+      gltf = await loader.loadAsync(CHASSIS.fallbackUrl);
+    }
+    loadMs = Math.round(performance.now() - t0);
+
+    if (phone) {
+      root.remove(phone);
+      phone = null;
+    }
+
+    phone = gltf.scene.clone(true);
+    phone.rotation.set(CHASSIS.rot[0], CHASSIS.rot[1], CHASSIS.rot[2]);
+    fitPhone(phone);
+    applyBackContent(phone);
+    root.add(phone);
+
+    function screenFacingScore(obj) {
+      const m = findScreenMesh(obj, CHASSIS.screenMat);
+      if (!m) return -1;
+      obj.updateWorldMatrix(true, true);
+      m.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(m);
+      const c = box.getCenter(new THREE.Vector3());
+      const sz = box.getSize(new THREE.Vector3());
+      let axis = getScreenOutwardNormal(m);
+      const toCam = camera.position.clone().sub(c).normalize();
+      if (axis.dot(toCam) < 0) axis = axis.clone().negate();
+      const upright = sz.y >= sz.x && sz.y >= sz.z ? 0.2 : 0;
+      return axis.dot(toCam) + upright;
+    }
+
+    let bestYaw = phone.rotation.y;
+    let bestScore = screenFacingScore(phone);
+    for (let i = 1; i < 4; i++) {
+      phone.rotation.y = CHASSIS.rot[1] + (Math.PI / 2) * i;
+      fitPhone(phone);
+      const sc = screenFacingScore(phone);
+      if (sc > bestScore) {
+        bestScore = sc;
+        bestYaw = phone.rotation.y;
+      }
+    }
+    phone.rotation.y = bestYaw;
+    fitPhone(phone);
+    if (screenFacingScore(phone) < 0.5) {
+      phone.rotation.x += Math.PI;
+      fitPhone(phone);
+      if (screenFacingScore(phone) < 0.5) {
+        phone.rotation.x -= Math.PI;
+        fitPhone(phone);
+      }
+    }
+    console.info(
+      "[palace] screen facing score",
+      screenFacingScore(phone).toFixed(3),
+      "yaw",
+      phone.rotation.y.toFixed(3)
+    );
+
+    /* Prefer the yaw where the camera-bump / lens island faces AWAY from camera
+       (so glass/screen faces us). Score = -bumpTowardCam + screenTowardCam. */
+    function bumpTowardCameraScore(obj) {
+      let bump = null;
+      obj.traverse((o) => {
+        if (!o.isMesh || bump) return;
+        const label = ((o.name || "") + " " + (Array.isArray(o.material) ? o.material.map((m) => m?.name || "").join(" ") : o.material?.name || "")).toLowerCase();
+        if (
+          label.includes("camera") ||
+          label.includes("lens") ||
+          label.includes("cam_island") ||
+          label.includes("cameraisland") ||
+          label.includes("flash") ||
+          label.includes("lidarbump") ||
+          label.includes("bump")
+        ) {
+          bump = o;
+        }
+      });
+      obj.updateWorldMatrix(true, true);
+      const scr = findScreenMesh(obj, CHASSIS.screenMat);
+      let screenDot = 0;
+      if (scr) {
+        scr.updateWorldMatrix(true, false);
+        let n = getScreenOutwardNormal(scr);
+        const c = new THREE.Box3().setFromObject(scr).getCenter(new THREE.Vector3());
+        const toCam = camera.position.clone().sub(c).normalize();
+        if (n.dot(toCam) < 0) n = n.clone().negate();
+        screenDot = n.dot(toCam);
+      }
+      let bumpDot = 0;
+      if (bump) {
+        bump.updateWorldMatrix(true, false);
+        const bc = new THREE.Box3().setFromObject(bump).getCenter(new THREE.Vector3());
+        /* bump center z in view: closer to camera than phone origin ⇒ bump faces us */
+        const phoneC = new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
+        const bumpToward = bc.distanceTo(camera.position) < phoneC.distanceTo(camera.position) ? 1 : -1;
+        bumpDot = bumpToward;
+      }
+      return screenDot - bumpDot * 0.8;
+    }
+
+    bestYaw = phone.rotation.y;
+    bestScore = bumpTowardCameraScore(phone);
+    for (let i = 0; i < 4; i++) {
+      phone.rotation.y = CHASSIS.rot[1] + (Math.PI / 2) * i;
+      fitPhone(phone);
+      const sc = bumpTowardCameraScore(phone);
+      if (sc > bestScore) {
+        bestScore = sc;
+        bestYaw = phone.rotation.y;
+      }
+    }
+    phone.rotation.y = bestYaw;
+    fitPhone(phone);
+    console.info("[palace] bump-aware yaw", bestYaw.toFixed(3), "score", bestScore.toFixed(3));
+
+    const mesh = findScreenMesh(phone, CHASSIS.screenMat);
+    if (mesh) glueScreenUi(mesh);
+    else console.warn("[palace] screen mesh not found — UI may not glue");
+
+    placeholder.classList.add("is-gone");
+    setTimeout(() => placeholder.remove(), 400);
+
+    if (creditEl) {
+      creditEl.textContent =
+        CHASSIS.credit + " · loaded " + loadMs + "ms · UV CanvasTexture glass";
+    }
+    return CHASSIS;
+  }
+
+  function setRotation(xDeg, yDeg) {
+    rotX = xDeg || 0;
+    rotY = yDeg || 0;
+    root.rotation.x = THREE.MathUtils.degToRad(rotX);
+    root.rotation.y = THREE.MathUtils.degToRad(rotY);
+  }
+
+  function setBackLine(line) {
+    backLine = line || backLine;
+    backTex.dispose();
+    backTex = makeBackTexture(backLine);
+    if (phone) applyBackContent(phone);
+  }
+
+  function setFinish() {}
+  function setModelUiId() {
+    return Promise.resolve(CHASSIS);
+  }
+
+  let frameCount = 0;
+  function frame() {
+    if (!running) return;
+    resize();
+    updateFacing();
+    renderer.render(scene, camera);
+    frameCount++;
+    /* idle refresh of live UI onto glass while front-facing */
+    if (facingCamera && frameCount % 90 === 0) {
+      captureUiToTexture(false);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  requestAnimationFrame(frame);
+  window.addEventListener("resize", resize);
+
+  const ready = loadChassis();
+
+  return {
+    ready,
+    glued: true,
+    textureScreen: true,
+    chassis: { "17pm": CHASSIS },
+    setModelUiId,
+    setFinish,
+    setRotation,
+    setBackLine,
+    resize,
+    captureNow: () => captureUiToTexture(true),
+    debugPaint(color) {
+      if (!uiCanvas || !uiTex) return false;
+      const ctx = uiCanvas.getContext("2d");
+      ctx.fillStyle = color || "#ff00aa";
+      ctx.fillRect(0, 0, uiCanvas.width, uiCanvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 64px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("TEX OK", uiCanvas.width / 2, uiCanvas.height / 2);
+      uiTex.needsUpdate = true;
+      if (screenMat) {
+        screenMat.map = uiTex;
+        screenMat.color.set(0xffffff);
+        screenMat.needsUpdate = true;
+      }
+      if (screenMesh) {
+        screenMesh.material = screenMat;
+        screenMesh.visible = true;
+      }
+      return { ok: true, mesh: screenMesh?.name, hasMap: !!screenMat?.map };
+    },
+    debugSolid(hex) {
+      if (!screenMesh) return false;
+      const mat = new THREE.MeshBasicMaterial({
+        color: hex || 0xff00aa,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      });
+      screenMesh.material = mat;
+      screenMesh.visible = true;
+      /* Also paint any sibling glass/black/screen */
+      let pr = screenMesh;
+      while (pr.parent && pr.parent !== root) pr = pr.parent;
+      pr.traverse((o) => {
+        if (!o.isMesh) return;
+        const n = (o.name || "").toLowerCase();
+        if (n.includes("glass") || n.includes("screen") || n.includes("black")) {
+          o.material = mat;
+          o.visible = true;
+        }
+      });
+      return screenMesh.name;
+    },
+    getLoadMs: () => loadMs,
+    getFacingBack() {
+      return !facingCamera;
+    },
+    isFacingCamera() {
+      return facingCamera;
+    },
+    debugOrient() {
+      const m = screenMesh || (phone && findScreenMesh(phone, CHASSIS.screenMat));
+      if (!m) return null;
+      const n = getScreenOutwardNormal(m);
+      const box = new THREE.Box3().setFromObject(m);
+      const c = box.getCenter(new THREE.Vector3());
+      const sz = box.getSize(new THREE.Vector3());
+      return {
+        normal: [n.x, n.y, n.z],
+        center: [c.x, c.y, c.z],
+        size: [sz.x, sz.y, sz.z],
+        phoneRot: phone ? [phone.rotation.x, phone.rotation.y, phone.rotation.z] : null,
+        rootRot: [root.rotation.x, root.rotation.y, root.rotation.z],
+        overlay: overlayMode,
+      };
+    },
+    dispose() {
+      running = false;
+      if (mutObs) mutObs.disconnect();
+      renderer.dispose();
+      if (uiTex) uiTex.dispose();
+    },
+  };
+}
+
+window.LT_DEVICE_MESH = { createDeviceMesh, CHASSIS };

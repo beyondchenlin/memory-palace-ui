@@ -1,0 +1,608 @@
+/* Memory Palace — formal product device stage
+   Desktop + Pad: CSS-3D phone (top models, bottom colors).
+   Real narrow phone: full-bleed, no fake island.
+   Screen clicks NEVER stolen by orbit. Double-click bezel = flip. */
+(function () {
+  const STORAGE_MODEL = "lt-palace-shell-model";
+  const STORAGE_FINISH = "lt-palace-shell";
+  const IDLE_MS = 60000;
+
+  const MODELS = [
+    { id: "island", name: "Island Pro", brand: "Apex", topChrome: "island" },
+    { id: "notch", name: "Classic Notch", brand: "Nova", topChrome: "notch" },
+    { id: "hole", name: "Android Hole", brand: "Pulse", topChrome: "hole" },
+    { id: "clean", name: "Clean Frame", brand: "Horizon", topChrome: "none" },
+    { id: "dual", name: "Dual Punch", brand: "Orbit", topChrome: "hole" },
+    { id: "slim", name: "Edge Slim", brand: "Vela", topChrome: "island" },
+    { id: "curve", name: "Soft Curve", brand: "Lumen", topChrome: "notch" },
+    { id: "flat", name: "Flat Glass", brand: "Terra", topChrome: "none" },
+  ];
+
+  const FINISHES = [
+    { id: "obsidian", name: "Obsidian", swatch: "#1a1c20" },
+    { id: "sterling", name: "Sterling", swatch: "#c5cad3" },
+    { id: "champagne", name: "Champagne", swatch: "#c9a86a" },
+    { id: "cobalt", name: "Cobalt", swatch: "#1e3a6e" },
+    { id: "crimson", name: "Crimson", swatch: "#8b1e2d" },
+    { id: "glacier", name: "Glacier", swatch: "#7eb8d4" },
+    { id: "amethyst", name: "Amethyst", swatch: "#5b3d8a" },
+    { id: "graphite", name: "Graphite", swatch: "#4a4d52" },
+    { id: "pearl", name: "Pearl", swatch: "#e8e4dc" },
+    { id: "sand", name: "Sand", swatch: "#b5a894" },
+  ];
+
+  const stage = document.getElementById("demo-stage");
+  const unit = document.getElementById("device-unit");
+  const rig = document.getElementById("device-rig");
+  const swatches = document.getElementById("shell-swatches");
+  const modelEl = document.getElementById("shell-models");
+  const nameEl = document.getElementById("shell-name");
+  const screenEl = document.querySelector(".device-screen");
+  const ssEl = document.getElementById("phone-screensaver");
+  const ssTime = document.getElementById("ss-time");
+  const ssDate = document.getElementById("ss-date");
+  if (!stage || !unit || !rig) return;
+
+  let rotX = 0;
+  let rotY = 0;
+  let dragging = false;
+  let dragMoved = false;
+  let lastX = 0;
+  let lastY = 0;
+  let hoverTiltX = 0;
+  let hoverTiltY = 0;
+  let lastBezelTapAt = 0;
+  let suppressDblClickUntil = 0;
+  let idleTimer = 0;
+  let ssClock = 0;
+  let screensaverOn = false;
+  /* Explicit flip state — NEVER derive is-back from free-orbit angle (that killed screen hits). */
+  let flipped = false;
+  let captureArmed = false;
+  let activePointerId = null;
+
+  function tShell(key, fallback) {
+    try {
+      const I18N = window.LT_I18N;
+      if (!I18N) return fallback;
+      const loc = document.documentElement.lang || "en";
+      const code = loc.startsWith("zh") ? "zh" : loc.slice(0, 2);
+      const pack = I18N.strings[code] || I18N.strings.en;
+      return pack[key] != null ? pack[key] : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function isRealPhone() {
+    const params = new URLSearchParams(location.search);
+    if (params.get("forcePhone") === "1") return true;
+    if (params.get("forceShell") === "1") return false;
+    return window.matchMedia("(max-width: 540px)").matches;
+  }
+
+  function prefersReduced() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function isOverScreen(target) {
+    if (!target || !screenEl) return false;
+    return screenEl.contains(target) || (target.closest && target.closest(".device-screen"));
+  }
+
+  function isPointOnScreen(clientX, clientY) {
+    if (!screenEl) return false;
+    const s = screenEl.getBoundingClientRect();
+    return clientX >= s.left && clientX <= s.right && clientY >= s.top && clientY <= s.bottom;
+  }
+
+  function isPointOnRim(clientX, clientY) {
+    if (!unit) return false;
+    const u = unit.getBoundingClientRect();
+    if (clientX < u.left || clientX > u.right || clientY < u.top || clientY > u.bottom) return false;
+    return !isPointOnScreen(clientX, clientY);
+  }
+
+  function applyTransform() {
+    if (isRealPhone()) {
+      unit.style.setProperty("--shell-tilt-x", "0deg");
+      unit.style.setProperty("--shell-tilt-y", "0deg");
+      unit.classList.remove("is-back");
+      flipped = false;
+      return;
+    }
+    const x = rotX + hoverTiltX;
+    const y = rotY + hoverTiltY;
+    unit.style.setProperty("--shell-tilt-x", x.toFixed(2) + "deg");
+    unit.style.setProperty("--shell-tilt-y", y.toFixed(2) + "deg");
+    /* is-back only from explicit flip — keeps screen clickable after tilt drag */
+    unit.classList.toggle("is-back", flipped);
+  }
+
+  function fitScale() {
+    if (isRealPhone()) {
+      stage.style.setProperty("--shell-fit", "1");
+      return;
+    }
+    const availH = Math.max(380, window.innerHeight - 260);
+    const availW = Math.max(260, Math.min(window.innerWidth - 56, 480));
+    const unitH = 900;
+    const unitW = 430;
+    const s = Math.min(1, availH / unitH, availW / unitW);
+    stage.style.setProperty("--shell-fit", s.toFixed(3));
+  }
+
+  function applyMode() {
+    const phone = isRealPhone();
+    document.body.classList.toggle("is-real-phone", phone);
+    stage.dataset.mode = phone ? "unshelled" : "shelled";
+    stage.classList.toggle("is-floating", !phone && !prefersReduced() && !dragging && !screensaverOn);
+    if (phone) {
+      rotX = 0;
+      rotY = 0;
+      hoverTiltX = 0;
+      hoverTiltY = 0;
+      flipped = false;
+      unit.dataset.topChrome = "none";
+      stage.dataset.topChrome = "none";
+      hideScreensaver(true);
+    } else {
+      const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
+      unit.dataset.topChrome = model.topChrome;
+      stage.dataset.topChrome = model.topChrome;
+    }
+    applyTransform();
+    fitScale();
+  }
+
+  function applyModel(id, persist) {
+    const model = MODELS.find((m) => m.id === id) || MODELS[0];
+    unit.dataset.model = model.id;
+    stage.dataset.model = model.id;
+    if (!isRealPhone()) {
+      unit.dataset.topChrome = model.topChrome;
+      stage.dataset.topChrome = model.topChrome;
+    } else {
+      unit.dataset.topChrome = "none";
+      stage.dataset.topChrome = "none";
+    }
+    if (modelEl) {
+      modelEl.querySelectorAll(".shell-model").forEach((b) => {
+        const on = b.dataset.model === model.id;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+    }
+    updateName();
+    bumpIdle();
+    if (persist !== false) {
+      try {
+        localStorage.setItem(STORAGE_MODEL, model.id);
+      } catch (_) {}
+    }
+  }
+
+  function applyFinish(id, persist) {
+    const finish = FINISHES.find((s) => s.id === id) || FINISHES[0];
+    unit.dataset.shell = finish.id;
+    stage.dataset.shell = finish.id;
+    if (swatches) {
+      swatches.querySelectorAll(".shell-swatch").forEach((b) => {
+        b.classList.toggle("is-on", b.dataset.shell === finish.id);
+        b.setAttribute("aria-selected", b.dataset.shell === finish.id ? "true" : "false");
+      });
+    }
+    updateName();
+    bumpIdle();
+    if (persist !== false) {
+      try {
+        localStorage.setItem(STORAGE_FINISH, finish.id);
+      } catch (_) {}
+    }
+  }
+
+  function updateName() {
+    if (!nameEl) return;
+    const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
+    const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
+    nameEl.textContent = model.brand + " " + model.name + " · " + finish.name;
+  }
+
+  function buildModels() {
+    if (!modelEl) return;
+    modelEl.innerHTML = "";
+    MODELS.forEach((m) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "shell-model";
+      btn.dataset.model = m.id;
+      btn.dataset.topChrome = m.topChrome;
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-label", m.brand + " " + m.name);
+      btn.innerHTML =
+        '<span class="shell-model-brand">' +
+        m.brand +
+        '</span><span class="shell-model-name">' +
+        m.name +
+        "</span>";
+      btn.title = m.brand + " · " + m.name;
+      btn.addEventListener("click", () => applyModel(m.id));
+      modelEl.appendChild(btn);
+    });
+  }
+
+  function buildSwatches() {
+    if (!swatches) return;
+    swatches.innerHTML = "";
+    FINISHES.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "shell-swatch";
+      btn.dataset.shell = s.id;
+      btn.style.background = "linear-gradient(145deg, " + s.swatch + ", #000)";
+      btn.title = s.name;
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-label", s.name);
+      btn.addEventListener("click", () => applyFinish(s.id));
+      swatches.appendChild(btn);
+    });
+  }
+
+  function flipToBack() {
+    flipped = true;
+    rotY = 180;
+    rotX = 0;
+    hoverTiltX = 0;
+    hoverTiltY = 0;
+    applyTransform();
+    bumpIdle();
+  }
+
+  function resetOrbit() {
+    flipped = false;
+    rotX = 0;
+    rotY = 0;
+    hoverTiltX = 0;
+    hoverTiltY = 0;
+    lastBezelTapAt = 0;
+    suppressDblClickUntil = 0;
+    applyTransform();
+    bumpIdle();
+  }
+
+  function toggleFlip() {
+    if (flipped) resetOrbit();
+    else flipToBack();
+  }
+
+  /* —— Screensaver —— */
+  function formatSsClock() {
+    const d = new Date();
+    const h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, "0");
+    const hh = ((h + 11) % 12) + 1;
+    if (ssTime) ssTime.textContent = hh + ":" + m;
+    if (ssDate) {
+      try {
+        ssDate.textContent = d.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        });
+      } catch (_) {
+        ssDate.textContent = "";
+      }
+    }
+  }
+
+  function showScreensaver() {
+    if (isRealPhone() || !ssEl || screensaverOn) return;
+    screensaverOn = true;
+    ssEl.hidden = false;
+    ssEl.setAttribute("aria-hidden", "false");
+    stage.classList.add("is-screensaver");
+    stage.classList.remove("is-floating");
+    formatSsClock();
+    if (ssClock) clearInterval(ssClock);
+    ssClock = setInterval(formatSsClock, 15000);
+  }
+
+  function hideScreensaver(silent) {
+    if (!ssEl) return;
+    const was = screensaverOn;
+    screensaverOn = false;
+    ssEl.hidden = true;
+    ssEl.setAttribute("aria-hidden", "true");
+    stage.classList.remove("is-screensaver");
+    if (ssClock) {
+      clearInterval(ssClock);
+      ssClock = 0;
+    }
+    if (!silent && was && !isRealPhone() && !prefersReduced() && !dragging) {
+      stage.classList.add("is-floating");
+    }
+  }
+
+  function bumpIdle() {
+    hideScreensaver(true);
+    if (idleTimer) clearTimeout(idleTimer);
+    if (isRealPhone()) return;
+    idleTimer = setTimeout(showScreensaver, IDLE_MS);
+  }
+
+  /* —— Orbit: bezel rim only; screen never starts drag —— */
+  function onHoverMove(e) {
+    if (isRealPhone() || prefersReduced() || dragging || screensaverOn || flipped) return;
+    if (isOverScreen(e.target)) {
+      hoverTiltX = 0;
+      hoverTiltY = 0;
+      applyTransform();
+      return;
+    }
+    const rect = rig.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const nx = Math.max(-1, Math.min(1, (e.clientX - cx) / (rect.width / 2)));
+    const ny = Math.max(-1, Math.min(1, (e.clientY - cy) / (rect.height / 2)));
+    hoverTiltY = nx * 5;
+    hoverTiltX = -ny * 3.5;
+    unit.style.setProperty("--shell-gloss-x", (50 + nx * 28).toFixed(1) + "%");
+    unit.style.setProperty("--shell-gloss-y", (32 + ny * 22).toFixed(1) + "%");
+    applyTransform();
+  }
+
+  function onHoverLeave() {
+    if (dragging) return;
+    hoverTiltX = 0;
+    hoverTiltY = 0;
+    applyTransform();
+  }
+
+  function isBezelRimTarget(target) {
+    if (!target || isOverScreen(target)) return false;
+    if (target.closest && (target.closest(".shell-rail") || target.closest(".shell-orbit-btn") || target.closest(".shell-swatch") || target.closest(".shell-model"))) return false;
+    /* Rim = bezel / face-back / unit chrome, not the glass */
+    return !!(
+      target === unit ||
+      target === rig ||
+      (target.classList && (target.classList.contains("device-bezel") || target.classList.contains("device-bezel-rim") || target.classList.contains("device-face-back") || target.classList.contains("device-face-front") || target.classList.contains("device-3d") || target.classList.contains("device-float"))) ||
+      (target.closest && (target.closest(".device-bezel-rim") || target.closest(".device-face-back") || target.closest("#device-bezel-rim")))
+    );
+  }
+
+  function onPointerDown(e) {
+    if (isRealPhone() || prefersReduced()) return;
+    if (isPointOnScreen(e.clientX, e.clientY) || isOverScreen(e.target)) return;
+    if (e.target.closest && (e.target.closest(".shell-rail") || e.target.closest(".shell-orbit-btn"))) return;
+    if (!isPointOnRim(e.clientX, e.clientY) && !(e.target && e.target.closest && e.target.closest(".device-face-back"))) return;
+    dragging = true;
+    dragMoved = false;
+    captureArmed = false;
+    activePointerId = e.pointerId;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    hoverTiltX = 0;
+    hoverTiltY = 0;
+    stage.classList.remove("is-floating");
+    stage.classList.add("is-dragging");
+    unit.classList.add("is-dragging");
+  }
+
+  function onPointerMove(e) {
+    if (!dragging) {
+      onHoverMove(e);
+      return;
+    }
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    if (!dragMoved && Math.abs(dx) + Math.abs(dy) > 4) {
+      dragMoved = true;
+      if (!captureArmed && activePointerId != null) {
+        captureArmed = true;
+        try {
+          rig.setPointerCapture(activePointerId);
+        } catch (_) {}
+      }
+    }
+    if (!dragMoved) return;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    if (flipped) {
+      rotY = 180 + Math.max(-24, Math.min(24, (rotY - 180) + dx * 0.35));
+      rotX = Math.max(-18, Math.min(18, rotX - dy * 0.28));
+    } else {
+      rotY = Math.max(-28, Math.min(28, rotY + dx * 0.42));
+      rotX = Math.max(-20, Math.min(20, rotX - dy * 0.34));
+    }
+    applyTransform();
+  }
+
+  function springFlat() {
+    if (flipped || prefersReduced()) return;
+    rotX = 0;
+    rotY = 0;
+    hoverTiltX = 0;
+    hoverTiltY = 0;
+    applyTransform();
+  }
+
+  function onPointerUp(e) {
+    if (!dragging) return;
+    const wasDrag = dragMoved;
+    const tapX = e.clientX;
+    const tapY = e.clientY;
+    dragging = false;
+    captureArmed = false;
+    stage.classList.remove("is-dragging");
+    unit.classList.remove("is-dragging");
+    if (!isRealPhone() && !prefersReduced() && !screensaverOn) stage.classList.add("is-floating");
+    try {
+      if (activePointerId != null) rig.releasePointerCapture(activePointerId);
+    } catch (_) {}
+    activePointerId = null;
+
+    if (wasDrag) {
+      /* Spring back to flat so screen hit-testing stays reliable */
+      if (!flipped) springFlat();
+      else {
+        rotX = 0;
+        rotY = 180;
+        hoverTiltX = 0;
+        hoverTiltY = 0;
+        applyTransform();
+      }
+    } else if (isPointOnRim(tapX, tapY) || (flipped && !isPointOnScreen(tapX, tapY))) {
+      const now = Date.now();
+      if (now - lastBezelTapAt < 400) {
+        toggleFlip();
+        lastBezelTapAt = 0;
+        suppressDblClickUntil = now + 700; /* ignore trailing native dblclick */
+      } else {
+        lastBezelTapAt = now;
+      }
+    }
+    bumpIdle();
+  }
+
+  function onBezelDblClick(e) {
+    if (isRealPhone()) return;
+    if (Date.now() < suppressDblClickUntil) return;
+    if (isPointOnScreen(e.clientX, e.clientY) || isOverScreen(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lastBezelTapAt = 0;
+    suppressDblClickUntil = Date.now() + 700;
+    toggleFlip();
+  }
+
+  /* Capture-phase dblclick on unit: geometry rim check (overlays may be pe:none) */
+  unit.addEventListener(
+    "dblclick",
+    (e) => {
+      if (isRealPhone()) return;
+      if (Date.now() < suppressDblClickUntil) return;
+      if (isPointOnScreen(e.clientX, e.clientY)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      lastBezelTapAt = 0;
+      suppressDblClickUntil = Date.now() + 700;
+      toggleFlip();
+    },
+    true
+  );
+
+  rig.addEventListener("pointerdown", onPointerDown);
+  rig.addEventListener("pointermove", onPointerMove);
+  rig.addEventListener("pointerup", onPointerUp);
+  rig.addEventListener("pointercancel", onPointerUp);
+  rig.addEventListener("pointerleave", onHoverLeave);
+  const bezelRim = document.getElementById("device-bezel-rim");
+  if (bezelRim) bezelRim.addEventListener("dblclick", onBezelDblClick);
+  const bezelEl = unit.querySelector(".device-bezel");
+  if (bezelEl) bezelEl.addEventListener("dblclick", onBezelDblClick);
+
+  /* click.detail===2 — covers browsers / tools where pointer double-tap timing differs */
+  unit.addEventListener(
+    "click",
+    (e) => {
+      if (isRealPhone() || e.detail !== 2) return;
+      if (Date.now() < suppressDblClickUntil) return;
+      if (isPointOnScreen(e.clientX, e.clientY) || isOverScreen(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      lastBezelTapAt = 0;
+      suppressDblClickUntil = Date.now() + 700;
+      toggleFlip();
+    },
+    true
+  );
+
+  if (screenEl) {
+    screenEl.style.pointerEvents = "auto";
+    /* Any in-screen activity resets idle + dismisses screensaver */
+    screenEl.addEventListener(
+      "pointerdown",
+      () => {
+        bumpIdle();
+      },
+      true
+    );
+  }
+
+  if (ssEl) {
+    ssEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      hideScreensaver();
+      bumpIdle();
+    });
+  }
+
+  const resetBtn = document.getElementById("shell-reset");
+  if (resetBtn) resetBtn.addEventListener("click", resetOrbit);
+  const flipBtn = document.getElementById("shell-flip");
+  if (flipBtn) flipBtn.addEventListener("click", toggleFlip);
+
+  /* Global activity keeps screensaver off */
+  ["keydown", "wheel", "touchstart"].forEach((ev) => {
+    document.addEventListener(ev, () => bumpIdle(), { passive: true });
+  });
+
+  buildModels();
+  buildSwatches();
+
+  const bootParams = new URLSearchParams(location.search);
+  const qModel = bootParams.get("model");
+  const qShell = bootParams.get("shell");
+  let savedModel = null;
+  let savedFinish = null;
+  try {
+    savedModel = localStorage.getItem(STORAGE_MODEL);
+    savedFinish = localStorage.getItem(STORAGE_FINISH);
+  } catch (_) {}
+
+  const bootModel =
+    qModel && MODELS.some((m) => m.id === qModel)
+      ? qModel
+      : savedModel && MODELS.some((m) => m.id === savedModel)
+        ? savedModel
+        : "island";
+  const bootFinish =
+    qShell && FINISHES.some((s) => s.id === qShell)
+      ? qShell
+      : savedFinish && FINISHES.some((s) => s.id === savedFinish)
+        ? savedFinish
+        : "obsidian";
+
+  applyModel(bootModel, false);
+  applyFinish(bootFinish, false);
+  applyMode();
+  bumpIdle();
+
+  const mqNarrow = window.matchMedia("(max-width: 540px)");
+  const onChange = () => applyMode();
+  if (mqNarrow.addEventListener) mqNarrow.addEventListener("change", onChange);
+  else mqNarrow.addListener(onChange);
+  window.addEventListener("orientationchange", () => setTimeout(applyMode, 120));
+  window.addEventListener("resize", () => fitScale());
+
+  window.LT_SHELL = {
+    models: MODELS,
+    finishes: FINISHES,
+    shells: FINISHES,
+    applyModel,
+    applyFinish,
+    applyShell: applyFinish,
+    isRealPhone,
+    resetOrbit,
+    flipToBack,
+    toggleFlip,
+    isFlipped: function () { return flipped; },
+    showScreensaver,
+    hideScreensaver,
+    bumpIdle,
+  };
+
+  document.addEventListener("lt-i18n-applied", () => {
+    updateName();
+  });
+})();

@@ -1,0 +1,17 @@
+{
+  "shellFit": "",
+  "unit": {
+    "w": 422,
+    "h": 876,
+    "top": 171
+  },
+  "projH": 750,
+  "classes": [
+    "has-gltf-chassis",
+    "has-glued-screen",
+    "has-texture-screen",
+    "has-gltf-ready"
+  ],
+  "overlay": true,
+  "facing": true
+}

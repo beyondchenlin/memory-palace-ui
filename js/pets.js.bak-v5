@@ -1,0 +1,216 @@
+/* Memory Palace — mood pets
+   Tone finish → animal. Eye/tone/stage pet open picker; desktop pet wanders + is clickable. */
+(function () {
+  const PET_MAP = {
+    duolingo: { emoji: "🐸", id: "frog", nameKey: "petFrog" },
+    "violet-night": { emoji: "🦉", id: "owl", nameKey: "petOwl" },
+    "space-gold": { emoji: "🦊", id: "fox", nameKey: "petFox" },
+    "space-blue": { emoji: "🐬", id: "dolphin", nameKey: "petDolphin" },
+    "product-red": { emoji: "🦜", id: "parrot", nameKey: "petParrot" },
+    "sierra-blue": { emoji: "🐧", id: "penguin", nameKey: "petPenguin" },
+    purple: { emoji: "🦩", id: "flamingo", nameKey: "petFlamingo" },
+    midnight: { emoji: "🐱", id: "cat", nameKey: "petCat" },
+    starlight: { emoji: "🐰", id: "bunny", nameKey: "petBunny" },
+    "natural-titanium": { emoji: "🐻", id: "bear", nameKey: "petBear" },
+  };
+
+  const DEFAULT = PET_MAP.duolingo;
+  let wanderTimer = 0;
+  let petEl = null;
+
+  function t(key, fallback) {
+    try {
+      const I18N = window.LT_I18N;
+      if (!I18N) return fallback;
+      const loc = document.documentElement.lang || "en";
+      const code = loc.startsWith("zh") ? "zh" : loc.slice(0, 2);
+      const pack = I18N.strings[code] || I18N.strings.en;
+      return pack[key] != null ? pack[key] : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function petFor(finishId) {
+    return PET_MAP[finishId] || DEFAULT;
+  }
+
+  function openToneFromPet() {
+    const lesson = document.getElementById("screen-lesson");
+    const onLesson = lesson && lesson.classList.contains("is-active");
+    const popId = onLesson ? "finish-popover-lesson" : "finish-popover-home";
+    const chipId = onLesson ? "finish-chip-lesson" : "finish-chip-home";
+    const mascotId = onLesson ? "mascot-lesson" : "mascot-home";
+    // Prefer navigating home tone if home active, else lesson
+    const home = document.getElementById("screen-home");
+    let usePop = popId;
+    let useChip = chipId;
+    let useMascot = mascotId;
+    if (home && home.classList.contains("is-active")) {
+      usePop = "finish-popover-home";
+      useChip = "finish-chip-home";
+      useMascot = "mascot-home";
+    }
+    const pop = document.getElementById(usePop);
+    const chip = document.getElementById(useChip);
+    const mascot = document.getElementById(useMascot);
+    if (!pop) return;
+    document.querySelectorAll(".finish-popover").forEach((p) => p.classList.remove("is-open"));
+    document.querySelectorAll(".finish-chip, .mascot-btn").forEach((c) =>
+      c.setAttribute("aria-expanded", "false")
+    );
+    pop.classList.add("is-open");
+    if (chip) chip.setAttribute("aria-expanded", "true");
+    if (mascot) mascot.setAttribute("aria-expanded", "true");
+    // If tone UI is on another screen, jump home so picker is visible
+    if (!onLesson && !(home && home.classList.contains("is-active"))) {
+      const tab = document.querySelector('.tab[data-screen="home"]');
+      if (tab) tab.click();
+      requestAnimationFrame(() => {
+        const hp = document.getElementById("finish-popover-home");
+        if (hp) hp.classList.add("is-open");
+      });
+    }
+  }
+
+  function ensureStagePet() {
+    if (petEl && petEl.isConnected) return petEl;
+    const stage = document.querySelector(".stage") || document.body;
+    petEl = document.createElement("button");
+    petEl.type = "button";
+    petEl.id = "stage-pet";
+    petEl.className = "stage-pet";
+    petEl.setAttribute("aria-label", t("mascotAria", "Open today's tone"));
+    petEl.title = t("mascotAria", "Open today's tone");
+    petEl.innerHTML =
+      '<span class="stage-pet-bubble" aria-hidden="true"></span><span class="stage-pet-emoji" aria-hidden="true">🐸</span>';
+    petEl.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      petEl.classList.remove("is-react");
+      void petEl.offsetWidth;
+      petEl.classList.add("is-react");
+      openToneFromPet();
+    });
+    stage.appendChild(petEl);
+    return petEl;
+  }
+
+  function syncMascots(finishId) {
+    const pet = petFor(finishId);
+    document.querySelectorAll(".mascot-btn").forEach((btn) => {
+      let badge = btn.querySelector(".mascot-pet");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "mascot-pet";
+        badge.setAttribute("aria-hidden", "true");
+        btn.appendChild(badge);
+      }
+      badge.textContent = pet.emoji;
+      btn.title = t(pet.nameKey, pet.id) + " · " + t("mascotAria", "Open today's tone");
+    });
+  }
+
+  function syncStagePet(finishId) {
+    const phone = document.body.classList.contains("is-real-phone");
+    const el = ensureStagePet();
+    const pet = petFor(finishId);
+    const emoji = el.querySelector(".stage-pet-emoji");
+    if (emoji) emoji.textContent = pet.emoji;
+    el.dataset.pet = pet.id;
+    el.setAttribute(
+      "aria-label",
+      t(pet.nameKey, pet.id) + " · " + t("mascotAria", "Open today's tone")
+    );
+    el.title = el.getAttribute("aria-label");
+    el.classList.toggle("is-hidden", phone);
+    el.hidden = !!phone;
+    el.tabIndex = phone ? -1 : 0;
+    if (!phone) startWander();
+    else stopWander();
+  }
+
+  function stopWander() {
+    if (wanderTimer) {
+      clearInterval(wanderTimer);
+      wanderTimer = 0;
+    }
+  }
+
+  function startWander() {
+    stopWander();
+    const el = ensureStagePet();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      el.style.left = "72%";
+      el.style.top = "62%";
+      return;
+    }
+    const move = () => {
+      if (document.body.classList.contains("is-real-phone")) return;
+      // Keep pet off the phone center so it doesn't cover in-shell controls
+      const side = Math.random() > 0.5;
+      const x = side ? 4 + Math.random() * 18 : 78 + Math.random() * 16;
+      const y = 22 + Math.random() * 58;
+      el.style.left = x.toFixed(1) + "%";
+      el.style.top = y.toFixed(1) + "%";
+      el.classList.toggle("is-flip", !side);
+    };
+    move();
+    wanderTimer = setInterval(move, 4800 + Math.random() * 2200);
+  }
+
+  function apply(finishId) {
+    syncMascots(finishId);
+    syncStagePet(finishId);
+  }
+
+  function decorateSwatches() {
+    document.querySelectorAll(".finish-swatch").forEach((btn) => {
+      const id = btn.dataset.finish;
+      const pet = petFor(id);
+      let slot = btn.querySelector(".swatch-pet");
+      if (!slot) {
+        slot = document.createElement("span");
+        slot.className = "swatch-pet";
+        slot.setAttribute("aria-hidden", "true");
+        btn.appendChild(slot);
+      }
+      slot.textContent = pet.emoji;
+    });
+  }
+
+  const mo = new MutationObserver(() => {
+    const id = document.documentElement.getAttribute("data-finish") || "duolingo";
+    apply(id);
+  });
+  mo.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-finish"],
+  });
+
+  document.addEventListener("lt-i18n-applied", () => {
+    decorateSwatches();
+    apply(document.documentElement.getAttribute("data-finish") || "duolingo");
+  });
+
+  const watchBody = new MutationObserver(() => {
+    apply(document.documentElement.getAttribute("data-finish") || "duolingo");
+  });
+  watchBody.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
+  function boot() {
+    decorateSwatches();
+    apply(document.documentElement.getAttribute("data-finish") || "duolingo");
+    document.querySelectorAll(".finish-grid").forEach((g) => {
+      const go = new MutationObserver(() => decorateSwatches());
+      go.observe(g, { childList: true });
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+
+  window.LT_PETS = { map: PET_MAP, petFor, apply, decorateSwatches, openToneFromPet };
+})();

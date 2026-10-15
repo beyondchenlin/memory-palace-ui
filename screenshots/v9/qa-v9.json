@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "name": "texture-glue-boot",
+      "pass": true,
+      "detail": "loadMs=141 mountParent=device-rig"
+    },
+    {
+      "name": "mount-on-rig",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "overflow-visible-mount",
+      "pass": true,
+      "detail": "visible"
+    },
+    {
+      "name": "overflow-visible-unit",
+      "pass": true,
+      "detail": "visible"
+    },
+    {
+      "name": "overflow-visible-rig",
+      "pass": true,
+      "detail": "visible"
+    },
+    {
+      "name": "no-top-rail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-typing-strip",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "shell-api",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "capture-host",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "mid-tilt-overflow-visible",
+      "pass": true,
+      "detail": "visible"
+    },
+    {
+      "name": "mid-tilt-has-yaw",
+      "pass": true,
+      "detail": "{\"x\":15.11999999999999,\"y\":215.04000000000013,\"viewX\":14.9747521970788,\"viewY\":212.97437221133782}"
+    },
+    {
+      "name": "mid-tilt-texture-mode",
+      "pass": true,
+      "detail": "facing=false overlay=false parked=true"
+    },
+    {
+      "name": "orbit-readable",
+      "pass": true,
+      "detail": "{\"x\":15.11999999999999,\"y\":215.04000000000013,\"viewX\":15.117366501039806,\"viewY\":215.0025479454825}"
+    },
+    {
+      "name": "damping-fields",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dblclick-reset",
+      "pass": true,
+      "detail": "{\"x\":0,\"y\":0,\"viewX\":1.5671803067192505,\"viewY\":344.9695099298996}"
+    },
+    {
+      "name": "no-404",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-pageerror",
+      "pass": true,
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found) | Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "conserr": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "notfound": []
+}
