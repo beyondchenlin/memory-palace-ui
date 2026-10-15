@@ -1,0 +1,123 @@
+/* Mood pets v6 — animal centered in tone circle; desk pet bob beside phone */
+
+.mascot-btn {
+  position: relative;
+  overflow: visible;
+}
+.mascot-btn.has-centered-pet .mascot-eye {
+  opacity: 0;
+  pointer-events: none;
+}
+.mascot-pet {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.45rem;
+  line-height: 1;
+  filter: none;
+  animation: petBob 2.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+.mascot-btn-mini .mascot-pet,
+.mascot-mini .mascot-pet {
+  font-size: 1.05rem;
+}
+
+@keyframes petBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.finish-swatch {
+  position: relative;
+}
+.finish-swatch .swatch-pet {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.85rem;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+/* Desktop pet — beside phone, gentle bob ONLY (no roam) */
+.stage-pet {
+  position: absolute;
+  z-index: 40;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: grab;
+  pointer-events: auto !important;
+  left: calc(50% + 170px);
+  top: 68%;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  transition: none;
+}
+.stage-pet.is-dragging {
+  cursor: grabbing;
+  z-index: 45;
+}
+.stage-pet:focus-visible {
+  outline: 3px solid var(--green, #58cc02);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+.stage-pet:hover .stage-pet-emoji {
+  transform: scale(1.08);
+}
+.stage-pet.is-hidden,
+.stage-pet[hidden] {
+  display: none !important;
+  pointer-events: none !important;
+}
+.stage-pet.is-react .stage-pet-emoji {
+  animation: petReact 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes petReact {
+  0% { transform: scale(1) translateY(0); }
+  35% { transform: scale(1.28) translateY(-10px); }
+  100% { transform: scale(1) translateY(0); }
+}
+.stage-pet-emoji {
+  font-size: 2.25rem;
+  line-height: 1;
+  filter: none; /* v7: pet no glow */
+  animation: petIdleBob 3.4s ease-in-out infinite;
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+.stage-pet-bubble {
+  display: none !important; /* v7: pet no glow */
+}
+@keyframes petIdleBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes petGlow {
+  0%, 100% { opacity: 0.4; transform: scale(0.94); }
+  50% { opacity: 0.7; transform: scale(1.03); }
+}
+
+body.is-real-phone .stage-pet {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-pet,
+  .stage-pet-emoji,
+  .stage-pet-bubble {
+    animation: none !important;
+  }
+}
