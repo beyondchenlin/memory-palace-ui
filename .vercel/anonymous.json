@@ -1,0 +1,11 @@
+{
+  "projectId": "prj_Z2ZGVk1gyekqpZvCqR8Hkz4xsAkc",
+  "deploymentUrl": "https://lingotrace-palace-ui.vercel.app",
+  "deploymentId": "dpl_8SMHUADLvuskzruH3nWRpFaC1pn2",
+  "durable": true,
+  "version": "v10g",
+  "note": "SF01 fix: claimed durable production; temp anonymous blocked CN VPN (SF01)",
+  "tempFallback": "https://temporary-brisk-quasar-gv0ehvv.vercel.app",
+  "claimUrl": "https://vercel.com/claim-deployment?code=2abe4895-0223-41af-aea6-408bf18eb499",
+  "shippedAt": "2026-10-16T05:59+08:00"
+}

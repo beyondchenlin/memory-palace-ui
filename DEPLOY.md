@@ -1,24 +1,26 @@
-# Memory Palace UI — v10g (outside-orbit / inside-click / white bump)
+# Memory Palace UI — v10g durable (SF01 fix)
 
-Shipped: 2026-10-15 Asia/Shanghai (UTC+8)
+Shipped: 2026-10-16 Asia/Shanghai (UTC+8)
 
-## Checklist matrix (Playwright `qa-v10g.mjs`) — 23/23 PASS
-1. Load speed (meshopt) — PASS (~70ms)
-2. Drag outside = orbit; dblclick outside = reset; inside = no orbit — PASS
-3. Single overlay, no double screen — PASS
-4. Clicks: Start, Clip, Tone, Interpret, ClipA, Lang — PASS
-5. Wash follows tone — PASS
-6. Camera bump opaque white — PASS
-7. Chassis registry 17pm (+15pm/android path) — PASS
-8. Mobile: phone unshelled; pad/desktop shelled; android no island — PASS
-9. Position pending→ready no jump — PASS
-10. Temp deploy + PR push — this ship
+## Cause of 403 SF01
+China phone (VPN on) hit anonymous **temporary** deploy `temporary-zippy-marsh-*`.
+Vercel Security Firewall **SF01** (`该请求被阻止`) blocks many CN/VPN exit IPs on unclaimed temp hosts.
+Box (iad1) still got HTTP 200 — not a content bug.
 
-## Root fix this stage
-Capture clone stripped `id`/`name` so `getElementById` never hits offscreen clone (broke Interpret/sheet).
+Project `lingotrace-palace-ui`: SSO/password/IP protection **off**; no Attack Challenge seawall.
 
-## Proof
-`screenshots/v10g/` + `qa-v10g.json`
+## Fix
+Production deploy `dpl_8SMHUADLvuskzruH3nWRpFaC1pn2` → durable alias.
 
-## Deploy
-Temp only — do not claim until user OK.
+## Open this (CN phone)
+**https://lingotrace-palace-ui.vercel.app/**
+
+Do **not** use `temporary-*.vercel.app` from CN — they expire (~1h) and trip SF01.
+
+## Multi-region note
+Hobby plan cannot set `functionDefaultRegions` multi (402). Static CDN still global.
+`vercel.json` keeps `regions: [sfo1,iad1,hkg1,sin1]` for when plan allows / anonymous CLI.
+
+## Temp (expires ~60m; may 403 from CN)
+https://temporary-brisk-quasar-gv0ehvv.vercel.app/
+Claim: https://vercel.com/claim-deployment?code=2abe4895-0223-41af-aea6-408bf18eb499
