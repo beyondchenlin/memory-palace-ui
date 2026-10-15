@@ -1,0 +1,65 @@
+{
+  "pass": true,
+  "results": [
+    {
+      "step": "layout",
+      "shellBarDisplay": "absent",
+      "compactInStageBar": true,
+      "modelBtn": true,
+      "colorBtn": true,
+      "phoneTop": 121,
+      "stageBarBottom": 75,
+      "pass": true
+    },
+    {
+      "step": "model_drawer_overlay",
+      "beforeTop": 118.56913757324219,
+      "open": true,
+      "phoneTop": 117.18251037597656,
+      "models": 4,
+      "pass": true
+    },
+    {
+      "step": "pick_notch",
+      "model": "notch",
+      "topChrome": "notch",
+      "miniChrome": "notch",
+      "drawerClosed": true,
+      "pass": true
+    },
+    {
+      "step": "pick_cobalt_link",
+      "shell": "cobalt",
+      "tone": "space-blue",
+      "expectedTone": "space-blue",
+      "wash": "#dce8fb",
+      "petEmoji": "🐬",
+      "chipFinish": "space-blue",
+      "miniFill": "#1e3a6e",
+      "pass": true
+    },
+    {
+      "step": "tone_to_shell",
+      "shell": "crimson",
+      "tone": "product-red",
+      "expectedShell": "crimson",
+      "petEmoji": "🦜",
+      "pass": true
+    },
+    {
+      "step": "yaw_clamp",
+      "rotX": 0,
+      "rotY": 80,
+      "maxYaw": 80,
+      "maxPitch": 68,
+      "pass": true
+    },
+    {
+      "step": "inside_clicks",
+      "ok": true,
+      "open": true,
+      "lesson": true,
+      "pass": true
+    }
+  ]
+}

@@ -14,17 +14,43 @@
   ];
 
   const FINISHES = [
-    { id: "obsidian", name: "Obsidian", swatch: "#1a1c20" },
-    { id: "sterling", name: "Sterling", swatch: "#c5cad3" },
-    { id: "champagne", name: "Champagne", swatch: "#c9a86a" },
-    { id: "cobalt", name: "Cobalt", swatch: "#1e3a6e" },
-    { id: "crimson", name: "Crimson", swatch: "#8b1e2d" },
-    { id: "glacier", name: "Glacier", swatch: "#7eb8d4" },
-    { id: "amethyst", name: "Amethyst", swatch: "#5b3d8a" },
-    { id: "graphite", name: "Graphite", swatch: "#4a4d52" },
-    { id: "pearl", name: "Pearl", swatch: "#e8e4dc" },
-    { id: "sand", name: "Sand", swatch: "#b5a894" },
+    { id: "obsidian", name: "Obsidian", swatch: "#1a1c20", wash: "#d8dbe3" },
+    { id: "sterling", name: "Sterling", swatch: "#c5cad3", wash: "#eef1f5" },
+    { id: "champagne", name: "Champagne", swatch: "#c9a86a", wash: "#f5ecd8" },
+    { id: "cobalt", name: "Cobalt", swatch: "#1e3a6e", wash: "#d5e2f5" },
+    { id: "crimson", name: "Crimson", swatch: "#8b1e2d", wash: "#f3d8dc" },
+    { id: "glacier", name: "Glacier", swatch: "#7eb8d4", wash: "#dff0f8" },
+    { id: "amethyst", name: "Amethyst", swatch: "#5b3d8a", wash: "#e8dff5" },
+    { id: "graphite", name: "Graphite", swatch: "#4a4d52", wash: "#e2e4e8" },
+    { id: "pearl", name: "Pearl", swatch: "#e8e4dc", wash: "#f7f5f0" },
+    { id: "sand", name: "Sand", swatch: "#b5a894", wash: "#f3eee4" },
   ];
+
+  /* Bidirectional link: shell finish ↔ in-phone Today's tone (hue pairing) */
+  const SHELL_TO_TONE = {
+    obsidian: "midnight",
+    sterling: "starlight",
+    champagne: "space-gold",
+    cobalt: "space-blue",
+    crimson: "product-red",
+    glacier: "sierra-blue",
+    amethyst: "violet-night",
+    graphite: "natural-titanium",
+    pearl: "starlight",
+    sand: "natural-titanium",
+  };
+  const TONE_TO_SHELL = {
+    midnight: "obsidian",
+    starlight: "sterling",
+    "space-gold": "champagne",
+    "space-blue": "cobalt",
+    "product-red": "crimson",
+    "sierra-blue": "glacier",
+    "violet-night": "amethyst",
+    purple: "amethyst",
+    "natural-titanium": "sand",
+    duolingo: "obsidian",
+  };
 
   const stage = document.getElementById("demo-stage");
   const unit = document.getElementById("device-unit");
@@ -34,6 +60,9 @@
   const nameEl = document.getElementById("shell-name");
   const screenEl = document.querySelector(".device-screen");
   if (!stage || !unit || !rig) return;
+
+  let linkingFromShell = false;
+  let linkingFromTone = false;
 
   // Rotation state (deg)
   // Left/right (rotY) hard-capped at ±80 so the phone never stands on edge.
@@ -89,8 +118,8 @@
     if (!target || !target.closest) return false;
     return !!target.closest(
       "button, a, input, select, textarea, label, option," +
-        "[role='button'], [role='option'], [role='tab'], [role='listbox']," +
-        ".shell-bar, .stage-bar, .lang-switch, .screen-tabs," +
+        "[role='button'], [role='option'], [role='tab'], [role='listbox'], [role='dialog']," +
+        ".shell-bar, .shell-compact, .shell-dd, .shell-dd-panel, .stage-bar, .lang-switch, .screen-tabs," +
         "#stage-pet, .stage-pet, .finish-popover, .finish-wrap"
     );
   }
@@ -128,7 +157,7 @@
       return;
     }
     // Fit portrait unit into available viewport under chrome bars
-    const availH = Math.max(420, window.innerHeight - 200);
+    const availH = Math.max(420, window.innerHeight - 120);
     const availW = Math.max(280, Math.min(window.innerWidth - 48, 520));
     const unitH = 900; // bezel + padding approx
     const unitW = 430;
@@ -183,10 +212,23 @@
     }
   }
 
-  function applyFinish(id, persist) {
+  function applyPageWash(hex) {
+    if (!hex) return;
+    const root = document.documentElement;
+    root.style.setProperty("--page-wash", hex);
+    root.style.setProperty("--page-wash-soft", "color-mix(in srgb, " + hex + " 55%, #f4f6f8)");
+    root.dataset.pageWash = hex;
+  }
+
+  function applyFinish(id, persist, linkTone) {
     const finish = FINISHES.find((s) => s.id === id) || FINISHES[0];
     unit.dataset.shell = finish.id;
     stage.dataset.shell = finish.id;
+    document.documentElement.style.setProperty("--shell-accent-live", finish.swatch);
+    /* Shell wash is a fallback; linked tone wash wins when tone sync runs */
+    if (!linkingFromTone) {
+      applyPageWash(finish.wash || finish.swatch);
+    }
     if (swatches) {
       swatches.querySelectorAll(".shell-swatch").forEach((b) => {
         b.classList.toggle("is-on", b.dataset.shell === finish.id);
@@ -199,13 +241,105 @@
         localStorage.setItem(STORAGE_FINISH, finish.id);
       } catch (_) {}
     }
+    if (linkTone !== false && !linkingFromTone && window.LT_PALACE && typeof window.LT_PALACE.applyFinish === "function") {
+      const toneId = SHELL_TO_TONE[finish.id];
+      if (toneId) {
+        linkingFromShell = true;
+        try {
+          /* Manual shell pick turns off daily follow */
+          try {
+            localStorage.setItem("lt-palace-follow-tone", "0");
+          } catch (_) {}
+          document.querySelectorAll(".follow-tone-input").forEach((el) => {
+            el.checked = false;
+          });
+          window.LT_PALACE.applyFinish(toneId, persist !== false);
+        } catch (_) {
+        } finally {
+          linkingFromShell = false;
+        }
+      }
+    }
+  }
+
+  function updateCompactIcons() {
+    const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
+    const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
+    const mini = document.getElementById("shell-mini");
+    if (mini) {
+      mini.dataset.chrome = model.topChrome || "none";
+      mini.style.setProperty("--shell-mini-fill", finish.swatch);
+      const chrome = mini.querySelector(".shell-mini-chrome");
+      if (chrome) chrome.dataset.chrome = model.topChrome || "none";
+    }
+    document.documentElement.style.setProperty("--shell-mini-fill", finish.swatch);
+    const dot = document.getElementById("shell-color-dot");
+    if (dot) {
+      dot.style.background = "linear-gradient(145deg, " + finish.swatch + ", #000)";
+    }
+    const colorName = document.getElementById("shell-color-name");
+    if (colorName) colorName.textContent = finish.name;
+    const modelBtn = document.getElementById("shell-model-btn");
+    if (modelBtn) modelBtn.title = model.name + " · " + finish.name;
+    const colorBtn = document.getElementById("shell-color-btn");
+    if (colorBtn) colorBtn.title = finish.name;
   }
 
   function updateName() {
-    if (!nameEl) return;
     const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
     const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
-    nameEl.textContent = model.name + " · " + finish.name;
+    if (nameEl) nameEl.textContent = model.name + " · " + finish.name;
+    updateCompactIcons();
+  }
+
+  function closeShellDrawers() {
+    document.querySelectorAll(".shell-dd-panel").forEach((p) => {
+      p.hidden = true;
+      p.classList.remove("is-open");
+    });
+    document.querySelectorAll(".shell-icon-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+  }
+
+  function toggleShellDrawer(kind) {
+    const panelId = kind === "model" ? "shell-model-panel" : "shell-color-panel";
+    const btnId = kind === "model" ? "shell-model-btn" : "shell-color-btn";
+    const panel = document.getElementById(panelId);
+    const btn = document.getElementById(btnId);
+    if (!panel || !btn) return;
+    const willOpen = panel.hidden;
+    closeShellDrawers();
+    if (willOpen) {
+      panel.hidden = false;
+      panel.classList.add("is-open");
+      btn.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  function wireCompactChrome() {
+    const modelBtn = document.getElementById("shell-model-btn");
+    const colorBtn = document.getElementById("shell-color-btn");
+    if (modelBtn) {
+      modelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleShellDrawer("model");
+      });
+    }
+    if (colorBtn) {
+      colorBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleShellDrawer("color");
+      });
+    }
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t && t.closest && t.closest(".shell-compact")) return;
+      closeShellDrawers();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeShellDrawers();
+    });
   }
 
   function buildModels() {
@@ -221,7 +355,11 @@
       btn.setAttribute("aria-label", m.name);
       btn.textContent = m.name;
       btn.title = m.name + " (" + m.topChrome + ")";
-      btn.addEventListener("click", () => applyModel(m.id));
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        applyModel(m.id);
+        closeShellDrawers();
+      });
       modelEl.appendChild(btn);
     });
   }
@@ -238,7 +376,11 @@
       btn.title = s.name;
       btn.setAttribute("role", "option");
       btn.setAttribute("aria-label", s.name);
-      btn.addEventListener("click", () => applyFinish(s.id));
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        applyFinish(s.id);
+        closeShellDrawers();
+      });
       swatches.appendChild(btn);
     });
   }
@@ -383,6 +525,7 @@
 
   buildModels();
   buildSwatches();
+  wireCompactChrome();
 
   const bootParams = new URLSearchParams(location.search);
   const qModel = bootParams.get("model");
@@ -408,7 +551,15 @@
         : "obsidian";
 
   applyModel(bootModel, false);
-  applyFinish(bootFinish, false);
+  /* Boot without linking so palace tone (loaded first) stays source of truth */
+  applyFinish(bootFinish, false, false);
+  const bootTone = document.documentElement.getAttribute("data-finish");
+  if (bootTone && TONE_TO_SHELL[bootTone]) {
+    applyFinish(TONE_TO_SHELL[bootTone], false, false);
+    if (window.LT_PALACE && window.LT_PALACE.TONE_WASH && window.LT_PALACE.TONE_WASH[bootTone]) {
+      applyPageWash(window.LT_PALACE.TONE_WASH[bootTone]);
+    }
+  }
   applyMode();
 
   const mqNarrow = window.matchMedia("(max-width: 540px)");
@@ -424,11 +575,16 @@
     models: MODELS,
     finishes: FINISHES,
     shells: FINISHES,
+    shellToTone: SHELL_TO_TONE,
+    toneToShell: TONE_TO_SHELL,
     applyModel,
     applyFinish,
     applyShell: applyFinish,
+    applyPageWash,
     isRealPhone,
     resetOrbit,
+    closeShellDrawers,
+    updateCompactIcons,
     getOrbit() {
       return { rotX, rotY, maxYaw: MAX_YAW, maxPitch: MAX_PITCH };
     },
@@ -450,5 +606,23 @@
     if (label && !label.textContent) label.textContent = tShell("shellLabel", "Device shell");
     const hint = document.querySelector("[data-i18n='shellHint']");
     if (hint) hint.textContent = tShell("shellHint", "Drag empty space to rotate (±80°) · double-click outside phone to reset · tap screen to practice");
+  });
+
+  /* In-phone tone → shell metal + page wash (no re-link loop) */
+  document.addEventListener("lt-tone-changed", (ev) => {
+    const detail = (ev && ev.detail) || {};
+    if (detail.wash) applyPageWash(detail.wash);
+    if (linkingFromShell) return;
+    const toneId = detail.id;
+    if (!toneId) return;
+    const shellId = TONE_TO_SHELL[toneId];
+    if (!shellId || unit.dataset.shell === shellId) return;
+    linkingFromTone = true;
+    try {
+      applyFinish(shellId, true, false);
+      if (detail.wash) applyPageWash(detail.wash);
+    } finally {
+      linkingFromTone = false;
+    }
   });
 })();
