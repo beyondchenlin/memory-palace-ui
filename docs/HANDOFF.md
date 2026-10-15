@@ -7,6 +7,86 @@
 本文同时服务：**下一个接手的模型** + **用户自己下载核对**。  
 **中文为主，关键专有名保留英文。**
 
+> **2026-10-16 补丁：** 用户要求把将来要重点推进的 **三条外观轨道** 写死、标清——见下方醒目专节。勿把三条线混仓、混域名、混 PR。
+
+---
+
+# ⚡⚡⚡ 三条优先外观轨道（必须分清 · 将来重点推进）
+
+> **用户原话浓缩：** 这几版展示界面改了很多次——① 纯粹 HUD；② 3D 真机演示；③ SVG 选机选色。  
+> **将来要重点分别推进这三条外观。** 交接与后续模型必须先认线，再改代码。  
+> **禁止**把三条线互相 alias / 盖部署 / 合进错误仓库。
+
+| # | 轨道名（中文） | 轨道名（EN） | 仓库 | 分支 | PR | 长期 URL |
+|---|----------------|--------------|------|------|-----|----------|
+| **①** | **纯 HUD / Studio 一屏** | Pure HUD (studio / one-screen) | [`beyondchenlin/lingotrace`](https://github.com/beyondchenlin/lingotrace) | `feat/hud-rescue` | [lingotrace #1](https://github.com/beyondchenlin/lingotrace/pull/1) | Studio 预览以当时部署为准，历史：`https://lingotrace-delta.vercel.app/studio/`（**不是**记忆宫殿域名） |
+| **②** | **3D 真机样机演示** | 3D real-phone mockup (v10g glTF) | [`beyondchenlin/memory-palace-ui`](https://github.com/beyondchenlin/memory-palace-ui) | `feat/v10d-gltf-uv-glue` | [palace-ui #1](https://github.com/beyondchenlin/memory-palace-ui/pull/1) | **https://lingotrace-palace-ui.vercel.app/** |
+| **③** | **SVG 壳演示** | SVG shell (compact drawers) | [`beyondchenlin/memory-palace-ui`](https://github.com/beyondchenlin/memory-palace-ui) | `feat/svg-shell-restore` | [palace-ui #2](https://github.com/beyondchenlin/memory-palace-ui/pull/2) | **https://lingotrace-palace-svg.vercel.app/** |
+
+---
+
+## 轨道 ① — 纯 HUD（Studio / one-screen HUD 迭代）
+
+| 项 | 内容 |
+|----|------|
+| **是什么** | LingoTrace **Studio 产品本身的 HUD / 一屏界面**（字幕工作流、课时 HUD、premium glass、continue 工艺批）。**不是**外面套真机壳的记忆宫殿预览。 |
+| **仓库** | https://github.com/beyondchenlin/lingotrace |
+| **分支 / PR** | `feat/hud-rescue` → [PR #1](https://github.com/beyondchenlin/lingotrace/pull/1) |
+| **本机路径** | `/workspace/english-tool-deploys/lingotrace` |
+| **预览** | `https://lingotrace-delta.vercel.app/studio/`（以部署为准；**勿**与 `lingotrace-palace-*` 混淆） |
+| **已做** | HUD 视觉挽回；continue5–38 工艺批；`dist` 静态导出已推；本地曾领先约 76 commits 已上 PR |
+| **下一步** | Review / merge 节奏与产品对齐；继续 Studio HUD / one-screen 体验，**不要**把记忆宫殿 3D/SVG 合进此仓 |
+| **铁律** | 记忆宫殿 **禁止** 部署到 `lingotrace-delta` |
+
+---
+
+## 轨道 ② — 3D 真机样机演示（v10g · glTF UV 贴屏）
+
+| 项 | 内容 |
+|----|------|
+| **是什么** | 记忆宫殿课的 **Three.js + glTF 真机壳**演示：金属机身/侧面边框、屏幕原生 UV + CanvasTexture 贴 `screen.001`、整机旋转、壳内网页可点 |
+| **仓库** | https://github.com/beyondchenlin/memory-palace-ui （**独立仓**，勿并入 Studio） |
+| **分支 / PR** | `feat/v10d-gltf-uv-glue` → [PR #1](https://github.com/beyondchenlin/memory-palace-ui/pull/1) |
+| **本机路径** | `/workspace/english-tool-deploys/memory-palace-ui` |
+| **长期 URL** | **https://lingotrace-palace-ui.vercel.app/** |
+| **参考源码** | https://github.com/quentin-pla/phone-mockup-studio |
+| **用户态度** | **「3D 版本保持住」**——冻结为主，勿用 SVG 部署盖掉此域名 |
+| **已做** | v10d→v10g：贴合、边框、后摄不透明白、去白闪/双机过渡、尺寸锁、壳外 orbit / 壳内点击、心境洗色、多 chassis 骨架、SF01 403 改 durable、QA 曾 23/23 |
+| **下一步** | 更多真机型号可切换；速度/贴合边角；核对首帧 vs 就绪帧位置；**勿破坏** `lingotrace-palace-ui` 长期域名 |
+| **铁律** | **禁止**把 SVG 构建 alias 到 `lingotrace-palace-ui` |
+
+---
+
+## 轨道 ③ — SVG 壳演示（选机 / 选色 / compact drawers）
+
+| 项 | 内容 |
+|----|------|
+| **是什么** | 记忆宫殿课的 **CSS/SVG demo-unit 壳**（非 Three.js）：选机型、选颜色、右下角小动物、顶部手机+颜色小图标下拉；边框品质以**当前版**为准 |
+| **仓库** | 同 ②：https://github.com/beyondchenlin/memory-palace-ui |
+| **分支 / PR** | `feat/svg-shell-restore` → [PR #2](https://github.com/beyondchenlin/memory-palace-ui/pull/2) |
+| **本机路径** | `/workspace/english-tool-deploys/memory-palace-svg-wt`（git worktree）；部署副本 `/workspace/english-tool-deploys/memory-palace-svg` |
+| **长期 URL** | **https://lingotrace-palace-svg.vercel.app/** |
+| **用户态度** | 额度耗尽前 **主改线**；要旧版「顶部图标+全联动」体验，但 **保持现在边框逻辑**（旧版有割裂感） |
+| **已做** | 四机型；10 色；宠物透明底；compact 下拉（overlay 不推手机）；颜色↔Tone↔卡片↔宠物联动；yaw ±80°；壳外拖转 / 双击回正 |
+| **下一步** | 打磨下拉手感与「顶部图标随色」观感；壳内按钮/动效 1:1 网页态回归；背景洗色核对 |
+| **铁律** | 只 alias 到 `lingotrace-palace-svg`；给人链接只用 durable，**禁止** `temporary-*`（CN 会 SF01 403） |
+
+---
+
+### 三条线怎么选（接手决策树）
+
+1. 用户说 **Studio / HUD / 一屏 / continue / premium glass** → 走 **①** `lingotrace`  
+2. 用户说 **3D / glTF / 真机金属边框 / Three** → 走 **②** `lingotrace-palace-ui`  
+3. 用户说 **SVG / 选机选色 / 小动物 / 下拉抽屉** → 走 **③** `lingotrace-palace-svg`  
+4. 不确定 → **先问用户指哪条轨道**，再动代码；默认额度前主改是 **③**，② 保持，① 独立产品
+
+### 三条线共同规则
+
+- 真手机（宽 ≤540px）：**无假壳、无假刘海**；桌面/Pad：有样机壳  
+- **每阶段** commit + push + **更新对应 PR**（防本机死机丢数据）  
+- 设计/前端：**开最高档**  
+- 用户说「先不要推」→ **立刻停** push/deploy
+
 ---
 
 ## 1. 项目是什么
@@ -24,14 +104,15 @@ Studio 正式预览历史域名（勿与记忆宫殿混淆）：`https://lingotr
 
 仓：`https://github.com/beyondchenlin/memory-palace-ui`
 
-两条并行产品线（必须分开，不要互相 alias）：
+**记忆宫殿侧是轨道 ②+③**（见文首 **三条优先外观轨道**）；Studio 侧是轨道 ①。三者并列、分开推进：
 
-| 线 | 实现 | 长期域名 | 分支 | PR |
-|----|------|----------|------|-----|
-| **3D** | Three.js + glTF 真机壳（UV 贴屏） | https://lingotrace-palace-ui.vercel.app/ | `feat/v10d-gltf-uv-glue` | [#1](https://github.com/beyondchenlin/memory-palace-ui/pull/1) |
-| **SVG** | CSS/SVG demo-unit 壳（选机/选色/小动物） | https://lingotrace-palace-svg.vercel.app/ | `feat/svg-shell-restore` | [#2](https://github.com/beyondchenlin/memory-palace-ui/pull/2) |
+| 轨道 | 实现 | 长期域名 | 分支 | PR |
+|------|------|----------|------|-----|
+| **① 纯 HUD** | Studio 一屏 / HUD（在 **lingotrace** 仓） | `lingotrace-delta.../studio/` | `feat/hud-rescue` | [lingotrace #1](https://github.com/beyondchenlin/lingotrace/pull/1) |
+| **② 3D 真机** | Three.js + glTF UV 贴屏 | https://lingotrace-palace-ui.vercel.app/ | `feat/v10d-gltf-uv-glue` | [palace #1](https://github.com/beyondchenlin/memory-palace-ui/pull/1) |
+| **③ SVG 壳** | CSS/SVG demo-unit + compact drawers | https://lingotrace-palace-svg.vercel.app/ | `feat/svg-shell-restore` | [palace #2](https://github.com/beyondchenlin/memory-palace-ui/pull/2) |
 
-用户在额度耗尽前明确：**3D 版本保持住**；当前主改 **SVG 原版**（选机+选色+右下角宠物、白底已去）。
+用户在额度耗尽前明确：**② 3D 保持住**；当前主改 **③ SVG**；**① 纯 HUD** 在 Studio 仓独立推进。
 
 遗留紫罗兰 sibling（旧）：`https://lingotrace-palace-ui-b.vercel.app/`（可能 307，勿当主站）。
 
@@ -269,24 +350,29 @@ Agent 名：英语工具；store id：`store-ff53f92a-627a-43b0-9205-873f7626ce0
 
 ## 11. 本交接文档位置
 
-- 仓内：`docs/HANDOFF.md`（独立 PR，仅此文件）  
-- Box：`/workspace/english-tool-deploys/memory-palace-ui/docs/HANDOFF.md`（可供 SendToUser 附件下载）
+- 仓内：`docs/HANDOFF.md`（独立 PR [#3](https://github.com/beyondchenlin/memory-palace-ui/pull/3)，仅此文件）  
+- Box / worktree：`/tmp/mp-handoff-wt/docs/HANDOFF.md`；同步副本 `/workspace/english-tool-deploys/memory-palace-ui/docs/HANDOFF.md`  
+- Store 镜像：`/cursor/stores/store-ff53f92a-627a-43b0-9205-873f7626ce00/memory-palace-ui/docs/HANDOFF.md`  
+- Raw：https://raw.githubusercontent.com/beyondchenlin/memory-palace-ui/docs/handoff-2026-10-16/docs/HANDOFF.md  
+- **文首「三条优先外观轨道」为 2026-10-16 用户补丁，接手必读。**
 
 ---
 
 ## 12. English summary (for non-Chinese models)
 
-**LingoTrace Studio** = `beyondchenlin/lingotrace` @ `feat/hud-rescue` ([PR #1](https://github.com/beyondchenlin/lingotrace/pull/1)).  
-**Memory Palace UI** = standalone lesson+phone mock preview, **not** Studio: `beyondchenlin/memory-palace-ui`.
+### THREE priority UI tracks (do not merge / alias across)
 
-Two durable tracks — keep separate:
-- **3D v10g**: https://lingotrace-palace-ui.vercel.app/ — branch `feat/v10d-gltf-uv-glue` — [PR #1](https://github.com/beyondchenlin/memory-palace-ui/pull/1)
-- **SVG compact**: https://lingotrace-palace-svg.vercel.app/ — branch `feat/svg-shell-restore` — [PR #2](https://github.com/beyondchenlin/memory-palace-ui/pull/2)
+| # | Track | Repo | Branch / PR | Durable URL / preview |
+|---|-------|------|-------------|------------------------|
+| **1** | **Pure HUD** (Studio / one-screen HUD iterations) | [`beyondchenlin/lingotrace`](https://github.com/beyondchenlin/lingotrace) | `feat/hud-rescue` — [lingotrace #1](https://github.com/beyondchenlin/lingotrace/pull/1) | `https://lingotrace-delta.vercel.app/studio/` (Studio only; not palace) |
+| **2** | **3D real-phone mockup** (v10g glTF UV) | [`beyondchenlin/memory-palace-ui`](https://github.com/beyondchenlin/memory-palace-ui) | `feat/v10d-gltf-uv-glue` — [palace #1](https://github.com/beyondchenlin/memory-palace-ui/pull/1) | **https://lingotrace-palace-ui.vercel.app/** |
+| **3** | **SVG shell demo** (compact phone/color drawers) | same as #2 | `feat/svg-shell-restore` — [palace #2](https://github.com/beyondchenlin/memory-palace-ui/pull/2) | **https://lingotrace-palace-svg.vercel.app/** |
 
-User froze 3D; active polish is SVG (compact phone/color drawers, full tone linkage, ±80° yaw, outside-drag / dblclick-reset, transparent desk pet).  
-Never send `temporary-*.vercel.app` to CN users (SF01 403).  
-Every milestone: commit + push + PR. No Memory Palace routines/cron configured.  
-Box paths under `/workspace/english-tool-deploys/memory-palace-*`. Continue from SVG PR #2 unless user reopens 3D.
+**Future work focus:** polish these **three appearances separately**.  
+User froze **#2 3D**; active polish is **#3 SVG**; **#1 Pure HUD** stays in the Studio repo.  
+Never send `temporary-*.vercel.app` to CN users (SF01 403). Never alias SVG onto the 3D durable host. Never deploy palace onto `lingotrace-delta`.  
+Every milestone: commit + push + update the matching PR. No Memory Palace routines/cron.  
+Box: `/workspace/english-tool-deploys/lingotrace` (#1), `memory-palace-ui` (#2), `memory-palace-svg-wt` (#3).
 
 ---
 
