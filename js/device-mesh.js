@@ -501,8 +501,28 @@ export function createDeviceMesh(opts = {}) {
     const wrap = document.createElement("div");
     wrap.className = "device-screen-capture-clone is-texture-screen";
     wrap.style.cssText = `width:${PX_W}px;height:${PX_H}px;position:relative;overflow:hidden;background:#050608;border-radius:44px;`;
+    function sanitizeCaptureClone(node) {
+      /* CRITICAL: strip ids/names so getElementById never hits the offscreen clone */
+      if (node.nodeType !== 1) return;
+      node.removeAttribute("id");
+      node.removeAttribute("name");
+      if (node.hasAttribute("aria-controls")) node.removeAttribute("aria-controls");
+      if (node.hasAttribute("aria-labelledby")) node.removeAttribute("aria-labelledby");
+      node.querySelectorAll("[id], [name], [aria-controls], [aria-labelledby]").forEach((el) => {
+        el.removeAttribute("id");
+        el.removeAttribute("name");
+        el.removeAttribute("aria-controls");
+        el.removeAttribute("aria-labelledby");
+      });
+      /* Capture is paint-only — never interactive */
+      node.querySelectorAll("button, a, input, textarea, select").forEach((el) => {
+        el.setAttribute("tabindex", "-1");
+        el.setAttribute("disabled", "true");
+      });
+    }
     Array.from(screenEl.children).forEach((child) => {
       const clone = child.cloneNode(true);
+      sanitizeCaptureClone(clone);
       clone.style.width = PX_W + "px";
       clone.style.height = PX_H + "px";
       clone.style.margin = "0";
@@ -528,6 +548,7 @@ export function createDeviceMesh(opts = {}) {
     if (!wrap.children.length) {
       const livePhone = screenEl.querySelector(".phone") || screenEl;
       const clone = livePhone.cloneNode(true);
+      sanitizeCaptureClone(clone);
       clone.style.cssText = `width:${PX_W}px;height:${PX_H}px;margin:0;transform:none;position:relative;`;
       wrap.appendChild(clone);
     }

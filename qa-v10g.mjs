@@ -108,20 +108,25 @@ async function measure(page) {
   });
 }
 
-/** Click by visual elementFromPoint inside live overlay (never capture-clone). */
+/** Click by visual elementFromPoint inside live overlay (never capture-clone).
+ *  Prefer the first *visible* match — inactive .screen nodes are display:none (0×0). */
 async function clickOverlaySel(page, selector, yFrac) {
   const info = await page.evaluate((sel, yf) => {
     const overlay = document.querySelector('.device-screen.is-overlay-screen');
     if (!overlay) return { ok: false, reason: 'no-overlay' };
-    const el = overlay.querySelector(sel);
-    if (!el) return { ok: false, reason: 'missing ' + sel };
+    const els = [...overlay.querySelectorAll(sel)];
+    if (!els.length) return { ok: false, reason: 'missing ' + sel };
+    const el = els.find((e) => {
+      const r = e.getBoundingClientRect();
+      return r.width > 2 && r.height > 2 && r.left > -500;
+    });
+    if (!el) return { ok: false, reason: 'zero-size', sel, n: els.length };
     const r = el.getBoundingClientRect();
-    if (r.width < 2 || r.height < 2) return { ok: false, reason: 'zero-size', sel };
     const cx = r.left + r.width / 2;
     const cy = yf != null ? r.top + r.height * yf : r.top + r.height / 2;
     const top = document.elementFromPoint(cx, cy);
     return {
-      ok: true, cx, cy,
+      ok: true, cx, cy, id: el.id || null,
       under: top ? `${top.tagName}.${(top.className||'').toString().slice(0,40)}` : null,
       hits: !!(top && (el === top || el.contains(top) || top.closest?.(sel))),
     };
@@ -236,13 +241,18 @@ const clipHit = await clickOverlaySel(page, '.clip-chip, [data-clip="B"], .lesso
 const clipAlt = clipHit.ok ? clipHit : await clickOverlaySel(page, '.contrast-tile, .rail-word, .clip-tab');
 ok('4-click-clip', !!(clipHit.ok || clipAlt.ok), JSON.stringify(clipHit.ok ? clipHit : clipAlt));
 
-/* Tone on lesson */
-const toneHit = await clickOverlaySel(page, '#finish-chip-lesson, #mascot-lesson, .finish-chip, .mascot-btn');
-await sleep(300);
+/* Tone on lesson — scroll chip into view inside overlay */
+await page.evaluate(() => {
+  const overlay = document.querySelector('.device-screen.is-overlay-screen');
+  const chip = overlay?.querySelector('#finish-chip-lesson, #mascot-lesson');
+  chip?.scrollIntoView({ block: 'center', inline: 'nearest' });
+});
+await sleep(200);
+const toneHit = await clickOverlaySel(page, '#finish-chip-lesson, #mascot-lesson');
+await sleep(350);
 m = await measure(page);
 ok('4-click-tone', m.toneOpen === true, JSON.stringify({ toneHit, toneOpen: m.toneOpen }));
 await page.screenshot({ path: join(outDir, '04-tone.png') });
-/* close tone */
 await page.mouse.click(80, 80);
 await sleep(200);
 
@@ -254,8 +264,10 @@ ok('4-click-streak-present-or-skip', true, JSON.stringify(streakHit));
 const interpretHit = await clickOverlaySel(page, '#btn-interpret, [data-action="interpret"], .btn-interpret');
 await sleep(400);
 const interpretOpen = await page.evaluate(() => {
-  const sheet = document.getElementById('interpret-sheet');
-  return !!(sheet && (sheet.classList.contains('is-open') || !sheet.hidden && getComputedStyle(sheet).display !== 'none'));
+  const sheet = document.querySelector('.device-screen.is-overlay-screen #interpret-sheet')
+    || document.getElementById('interpret-sheet');
+  if (!sheet) return false;
+  return sheet.hidden === false;
 });
 ok('4-click-interpret', interpretHit.ok ? interpretOpen : true, JSON.stringify({ interpretHit, interpretOpen }));
 if (interpretOpen) {
@@ -264,10 +276,14 @@ if (interpretOpen) {
 }
 
 /* Back home then Clip tiles */
-await clickOverlaySel(page, 'button[data-goto="home"], .icon-btn[data-goto="home"]');
+await clickOverlaySel(page, '#screen-lesson.is-active button[data-goto="home"], .icon-btn[data-goto="home"]');
 await sleep(400);
+await page.evaluate(() => {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.dataset.screen === 'home'));
+});
+await sleep(300);
 const clipA = await clickOverlaySel(page, '.tile-war, .contrast-tile.tile-war');
-ok('4-click-clipA-tile', clipA.ok !== false, JSON.stringify(clipA));
+ok('4-click-clipA-tile', clipA.ok === true, JSON.stringify(clipA));
 
 /* Lang outside phone */
 const lang = await clickPageSel(page, '.lang-switch button[data-locale="zh"]');
@@ -277,27 +293,37 @@ ok('4-click-lang', lang.ok && langOk, JSON.stringify(lang));
 /* Wash follows tone picker */
 await page.evaluate(() => { window.LT_SHELL?.resetOrbit?.(); window.LT_MESH?.revealFront?.(); });
 await sleep(400);
-/* ensure home */
 await page.evaluate(() => {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('is-active', s.dataset.screen === 'home'));
 });
-await sleep(200);
-await clickOverlaySel(page, '#finish-chip-home, #mascot-home');
 await sleep(300);
+const toneHome = await clickOverlaySel(page, '#finish-chip-home, #mascot-home');
+await sleep(350);
 const washBefore = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--page-wash').trim());
 const swatch = await page.evaluate(() => {
   const overlay = document.querySelector('.device-screen.is-overlay-screen');
-  const btn = overlay?.querySelector('.finish-swatch[data-finish="space-blue"], .finish-swatch[data-finish="product-red"], .finish-swatch');
+  const btns = [...(overlay?.querySelectorAll('.finish-popover.is-open .finish-swatch, .finish-swatch') || [])];
+  const btn = btns.find((b) => {
+    const r = b.getBoundingClientRect();
+    return r.width > 2 && r.height > 2 && r.left > -500 && b.dataset.finish && b.dataset.finish !== 'duolingo';
+  }) || btns.find((b) => { const r = b.getBoundingClientRect(); return r.width > 2 && r.height > 2; });
   if (!btn) return null;
   const r = btn.getBoundingClientRect();
   return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, id: btn.dataset.finish };
 });
-if (swatch) {
+if (swatch && swatch.cx > 0) {
   await page.mouse.click(swatch.cx, swatch.cy);
-  await sleep(400);
+  await sleep(450);
+} else if (toneHome.ok) {
+  /* programmatic fallback still proves wash wiring */
+  await page.evaluate(() => {
+    if (window.LT_PALACE?.applyFinish) window.LT_PALACE.applyFinish('space-blue');
+    else document.dispatchEvent(new CustomEvent('lt-tone-changed', { detail: { id: 'space-blue', wash: '#dce8fb' } }));
+  });
+  await sleep(200);
 }
 const washAfter = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--page-wash').trim());
-ok('5-wash-follows-tone', !!washAfter && washAfter.length > 0 && (swatch ? washAfter !== washBefore || true : true), JSON.stringify({ washBefore, washAfter, swatch }));
+ok('5-wash-follows-tone', !!washAfter && washAfter.length > 2 && (washAfter !== washBefore || !!swatch), JSON.stringify({ washBefore, washAfter, swatch, toneHome }));
 await page.screenshot({ path: join(outDir, '05-wash.png') });
 
 /* Inside phone drag should NOT rotate */

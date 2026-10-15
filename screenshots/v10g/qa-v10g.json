@@ -1,0 +1,227 @@
+{
+  "results": [
+    {
+      "name": "9-no-position-jump",
+      "pass": true,
+      "detail": "{\"jump\":{\"dTop\":4,\"dH\":0,\"dW\":0},\"fit\":\"0.833\"}"
+    },
+    {
+      "name": "9-pending-ready-diff-recorded",
+      "pass": true,
+      "detail": "{\"diffPx\":264201,\"pct\":19.865}"
+    },
+    {
+      "name": "1-load-fast",
+      "pass": true,
+      "detail": "loadMs=70"
+    },
+    {
+      "name": "3-single-overlay",
+      "pass": true,
+      "detail": "{\"l\":379.2,\"t\":242.1,\"w\":313.7,\"h\":671.2,\"overlay\":true,\"pe\":\"auto\"}"
+    },
+    {
+      "name": "3-no-double-screen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "6-camera-bump-opaque-white",
+      "pass": true,
+      "detail": "[{\"mesh\":\"Cube010_Material007_0\",\"mat\":\"Material.007\",\"color\":\"#ffffff\",\"transparent\":false,\"opacity\":1,\"metalness\":0.18,\"roughness\":0.32}]"
+    },
+    {
+      "name": "7-chassis-registry",
+      "pass": true,
+      "detail": "chassis=17pm"
+    },
+    {
+      "name": "2-drag-outside-rotates",
+      "pass": true,
+      "detail": "{\"overlay\":false,\"facing\":false,\"rot\":{\"x\":7.200000000000001,\"y\":67.2,\"viewX\":5.457920520446045,\"viewY\":50.54093958591833}}"
+    },
+    {
+      "name": "2-dblclick-outside-reset",
+      "pass": true,
+      "detail": "{\"overlay\":true,\"facing\":true,\"rot\":{\"x\":0,\"y\":0,\"viewX\":0,\"viewY\":0}}"
+    },
+    {
+      "name": "4-click-start-lesson",
+      "pass": true,
+      "detail": "{\"startHit\":{\"ok\":true,\"cx\":536.0234375,\"cy\":768.671875,\"id\":null,\"under\":\"SPAN.\",\"hits\":true},\"lesson\":true}"
+    },
+    {
+      "name": "4-click-clip",
+      "pass": true,
+      "detail": "{\"ok\":true,\"cx\":464.6015625,\"cy\":362.078125,\"id\":null,\"under\":\"BUTTON.clip-chip is-on\",\"hits\":true}"
+    },
+    {
+      "name": "4-click-tone",
+      "pass": true,
+      "detail": "{\"toneHit\":{\"ok\":true,\"cx\":614.859375,\"cy\":314.078125,\"id\":\"mascot-lesson\",\"under\":\"SPAN.mascot-pet\",\"hits\":true},\"toneOpen\":true}"
+    },
+    {
+      "name": "4-click-streak-present-or-skip",
+      "pass": true,
+      "detail": "{\"ok\":false,\"reason\":\"missing .streak, .hud-streak, .stat-streak, [data-stat=\\\"streak\\\"]\"}"
+    },
+    {
+      "name": "4-click-interpret",
+      "pass": true,
+      "detail": "{\"interpretHit\":{\"ok\":true,\"cx\":609.3125,\"cy\":584.640625,\"id\":\"btn-interpret\",\"under\":\"SPAN.\",\"hits\":true},\"interpretOpen\":true}"
+    },
+    {
+      "name": "4-click-clipA-tile",
+      "pass": true,
+      "detail": "{\"ok\":true,\"cx\":467.7421875,\"cy\":669.671875,\"id\":null,\"under\":\"STRONG.\",\"hits\":true}"
+    },
+    {
+      "name": "4-click-lang",
+      "pass": true,
+      "detail": "{\"ok\":true,\"cx\":505.453125,\"cy\":111.5}"
+    },
+    {
+      "name": "5-wash-follows-tone",
+      "pass": true,
+      "detail": "{\"washBefore\":\"#d8dbe3\",\"washAfter\":\"#ebe4ff\",\"swatch\":{\"cx\":535.875,\"cy\":457.4921875,\"id\":\"violet-night\"},\"toneHome\":{\"ok\":true,\"cx\":529.5625,\"cy\":338.078125,\"id\":\"mascot-home\",\"under\":\"SPAN.mascot-pet\",\"hits\":true}}"
+    },
+    {
+      "name": "2-drag-inside-no-orbit",
+      "pass": true,
+      "detail": "{\"beforeIn\":{\"x\":0,\"y\":0,\"viewX\":0,\"viewY\":0},\"afterIn\":{\"rot\":{\"x\":0,\"y\":0,\"viewX\":0,\"viewY\":0},\"overlay\":true}}"
+    },
+    {
+      "name": "8-bp-desktop",
+      "pass": true,
+      "detail": "{\"realPhone\":false,\"mode\":\"shelled\",\"topChrome\":\"island\",\"hasGltf\":true,\"expect\":{\"shelled\":true,\"waitReady\":true}}"
+    },
+    {
+      "name": "8-bp-pad",
+      "pass": true,
+      "detail": "{\"realPhone\":false,\"mode\":\"shelled\",\"topChrome\":\"island\",\"hasGltf\":true,\"expect\":{\"shelled\":true,\"waitReady\":true}}"
+    },
+    {
+      "name": "8-bp-phone",
+      "pass": true,
+      "detail": "{\"realPhone\":true,\"mode\":\"unshelled\",\"topChrome\":\"none\",\"hasGltf\":false,\"expect\":{\"shelled\":false,\"waitReady\":false,\"mobileUA\":true,\"topChromeNone\":true}}"
+    },
+    {
+      "name": "8-bp-forcePhone",
+      "pass": true,
+      "detail": "{\"realPhone\":true,\"mode\":\"unshelled\",\"topChrome\":\"none\",\"hasGltf\":false,\"expect\":{\"shelled\":false,\"waitReady\":false,\"topChromeNone\":true}}"
+    },
+    {
+      "name": "8-android-no-island-chrome",
+      "pass": true,
+      "detail": "{\"model\":\"hole\",\"topChrome\":\"hole\"}"
+    }
+  ],
+  "jump": {
+    "dTop": 4,
+    "dH": 0,
+    "dW": 0
+  },
+  "pending": {
+    "pending": true,
+    "ready": false,
+    "realPhone": false,
+    "mode": "shelled",
+    "topChrome": "island",
+    "fit": "0.833",
+    "unit": {
+      "t": 175,
+      "h": 729.7,
+      "w": 351.5,
+      "l": 360.2
+    },
+    "screen": {
+      "l": 696.3,
+      "t": 887.2,
+      "w": 0,
+      "h": 0,
+      "overlay": false,
+      "pe": "auto"
+    },
+    "overlayMode": false,
+    "loadMs": 0,
+    "wash": "#e5f6d4",
+    "home": true,
+    "lesson": false,
+    "palace": false,
+    "settle": false,
+    "toneOpen": false,
+    "chassis": "17pm"
+  },
+  "ready": {
+    "pending": false,
+    "ready": true,
+    "realPhone": false,
+    "mode": "shelled",
+    "topChrome": "island",
+    "fit": "0.833",
+    "unit": {
+      "t": 171,
+      "h": 729.7,
+      "w": 351.5,
+      "l": 360.2
+    },
+    "screen": {
+      "l": 379.2,
+      "t": 242.1,
+      "w": 313.7,
+      "h": 671.2,
+      "overlay": true,
+      "pe": "auto"
+    },
+    "overlayMode": true,
+    "loadMs": 70,
+    "wash": "#d8dbe3",
+    "home": true,
+    "lesson": false,
+    "palace": false,
+    "settle": false,
+    "toneOpen": false,
+    "chassis": "17pm"
+  },
+  "od": {
+    "diffPx": 264201,
+    "pct": 19.865
+  },
+  "bump": [
+    {
+      "mesh": "Cube010_Material007_0",
+      "mat": "Material.007",
+      "color": "#ffffff",
+      "transparent": false,
+      "opacity": 1,
+      "metalness": 0.18,
+      "roughness": 0.32
+    }
+  ],
+  "logs": [
+    "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[info] [palace] studio orient yaw 1.571",
+    "[info] [palace] chassis visible Cube010_black002_0",
+    "[info] [palace] back glass visible Cube010_glass002_0",
+    "[info] [palace] meshes Cube010_black002_0 mats=PaletteMaterial001 · Cube010_glass002_0 mats=PaletteMaterial002 · Cube010_screen001_0 mats=screen.001 · Cube010_Material007_0 mats=Material.007",
+    "[info] [palace] camera bump → opaque white Cube010_Material007_0 Material.007",
+    "[info] [palace] UV glue mesh Cube010_screen001_0 studio affine {\"repeat\":[-1.028278,-1],\"offset\":[0.020257,1.0019],\"clamp\":true}",
+    "[info] [palace] framed z= 5.60 wantH= 711",
+    "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[info] [palace] framed z= 5.60 wantH= 711",
+    "[info] [palace] framed z= 5.60 wantH= 711",
+    "[info] [palace] chassis ready 70 ms",
+    "[info] [palace] camera bump → opaque white Cube010_Material007_0 Material.007",
+    "[info] [palace] framed z= 5.48 wantH= 711",
+    "[info] [palace] framed z= 5.48 wantH= 711",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good"
+  ]
+}
