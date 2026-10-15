@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en" data-finish="violet-night">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LingoTrace · Memory Palace · UI Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/palace.css" />
+  <link rel="stylesheet" href="css/finishes.css" />
+  <link rel="stylesheet" href="css/device-shell.css" />
+</head>
+<body>
+  <div class="stage">
+    <header class="stage-bar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <strong>Memory Palace</strong>
+          <span data-i18n="brandSub">Film memory palace · in-clip interpret + tone (standalone, not Studio)</span>
+        </div>
+      </div>
+      <div class="stage-bar-right">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-locale="en" class="is-on">EN</button>
+          <button type="button" data-locale="zh">中文</button>
+          <button type="button" data-locale="ja">JA</button>
+          <button type="button" data-locale="es">ES</button>
+          <button type="button" data-locale="ko">KO</button>
+        </div>
+        <nav class="screen-tabs" role="tablist" aria-label="Preview screens">
+          <button type="button" class="tab is-active" data-screen="home" data-i18n="tabToday">1 · Today</button>
+          <button type="button" class="tab" data-screen="lesson" data-i18n="tabClip">2 · Clip</button>
+          <button type="button" class="tab" data-screen="palace" data-i18n="tabPalace">3 · Palace</button>
+          <button type="button" class="tab" data-screen="settle" data-i18n="tabSettle">4 · Settle</button>
+        </nav>
+      </div>
+    </header>
+
+    <div class="demo-stage" id="demo-stage" data-mode="shelled" data-shell="obsidian" data-model="island" data-top-chrome="island">
+      <div class="demo-stage-glow" aria-hidden="true"></div>
+      <div class="shell-bar">
+        <div class="shell-bar-row">
+          <span class="shell-bar-label" data-i18n="shellLabel">Demo unit</span>
+          <span class="shell-name" id="shell-name">Island Pro · Obsidian</span>
+        </div>
+        <div class="shell-models" id="shell-models" role="listbox" aria-label="Phone shell model"></div>
+        <div class="shell-bar-row">
+          <div class="shell-swatches" id="shell-swatches" role="listbox" aria-label="Phone shell finish"></div>
+        </div>
+      </div>
+      <div class="device-rig" id="device-rig">
+        <div class="device-float" id="device-float">
+        <div class="device-unit" id="device-unit" data-shell="obsidian" data-model="island" data-top-chrome="island">
+          <div class="device-btn device-btn-silent" aria-hidden="true"></div>
+          <div class="device-btn device-btn-vol-up" aria-hidden="true"></div>
+          <div class="device-btn device-btn-vol-down" aria-hidden="true"></div>
+          <div class="device-btn device-btn-power" aria-hidden="true"></div>
+          <div class="device-bezel">
+            <div class="device-gloss" aria-hidden="true"></div>
+            <!-- Outer bezel top chrome only — shown by data-top-chrome when shelled -->
+            <div class="device-island" aria-hidden="true"></div>
+            <div class="device-notch" aria-hidden="true"></div>
+            <div class="device-hole" aria-hidden="true"></div>
+            <div class="device-screen">
+              <div class="phone" id="phone">
+        <!-- phone-notch kept for legacy DOM; CSS always hides — never fake island on app UI -->
+        <div class="phone-notch" aria-hidden="true" hidden></div>
+        <div class="phone-status">
+          <span>9:41</span>
+          <span class="status-right">
+            <i class="sig"></i><i class="sig"></i><i class="sig"></i>
+            <span class="bat"></span>
+          </span>
+        </div>
+
+        <!-- ========== SCREEN 1: HOME ========== -->
+        <section class="screen is-active" id="screen-home" data-screen="home">
+          <div class="home-top">
+            <div class="streak-pill" title="Practice streak">
+              <span class="flame" aria-hidden="true">🔥</span>
+              <div>
+                <em data-i18n="streak">STREAK</em>
+                <strong>12</strong>
+              </div>
+            </div>
+            <div class="mascot-wrap">
+              <button type="button" class="mascot-btn" id="mascot-home" aria-expanded="false" aria-controls="finish-popover-home" data-i18n-aria="mascotAria" aria-label="Open today's tone">
+                <span class="mascot-eye" aria-hidden="true">
+                  <span class="mascot-lid"></span>
+                  <span class="mascot-pupil"></span>
+                  <span class="mascot-shine"></span>
+                </span>
+              </button>
+            </div>
+            <div class="xp-ring-wrap" aria-label="Daily XP goal 80 of 100">
+              <svg class="xp-ring" viewBox="0 0 88 88" aria-hidden="true">
+                <circle class="xp-track" cx="44" cy="44" r="36" />
+                <circle class="xp-prog" cx="44" cy="44" r="36" />
+              </svg>
+              <div class="xp-ring-core">
+                <strong>80</strong>
+                <span>XP</span>
+              </div>
+            </div>
+            <div class="finish-wrap" id="finish-wrap-home">
+              <button type="button" class="finish-chip" id="finish-chip-home" aria-expanded="false" aria-haspopup="true" aria-controls="finish-popover-home" data-i18n-title="toneTitle" title="Today's tone">
+                <span class="finish-chip-dots" aria-hidden="true">
+                  <i style="background:#58cc02"></i>
+                  <i style="background:#7c5cff"></i>
+                  <i style="background:#2f6fed"></i>
+                </span>
+                <em data-i18n="toneChip">Tone</em>
+              </button>
+              <div class="finish-popover" id="finish-popover-home" role="listbox" aria-label="Today's tone">
+                <div class="finish-popover-title" data-i18n="toneTitle">Today's tone</div>
+                <div class="finish-popover-sub" data-i18n="toneSub">Pick a finish. One color, one mood — then type.</div>
+                <div class="finish-grid" id="finish-grid-home"></div>
+                <label class="follow-tone">
+                  <input type="checkbox" class="follow-tone-input" />
+                  <span>
+                    <strong data-i18n="followTone">Follow today's tone</strong>
+                    <em data-i18n="followToneHint">Auto-picks a daily finish (optional)</em>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="greeting">
+            <h1 data-i18n="greetingTitle">Today's word</h1>
+            <p data-i18n="greetingSub">Hear two contrast clips · type one line · pin it in the palace</p>
+          </div>
+
+          <article class="pack-card">
+            <div class="pack-glow" aria-hidden="true"></div>
+            <div class="pack-badges">
+              <span class="chip chip-warm">WORD PACK</span>
+              <span class="chip chip-hud">2 CLIPS</span>
+            </div>
+            <h2 class="pack-phrase">I love you</h2>
+            <p class="pack-sub" data-i18n="packSub">War drama vs cartoon · same line, two emotion palaces</p>
+            <div class="pack-contrast">
+              <div class="contrast-tile tile-war">
+                <span class="tile-icon">🎖️</span>
+                <strong>Clip A</strong>
+                <em>War drama</em>
+              </div>
+              <div class="vs">VS</div>
+              <div class="contrast-tile tile-toon">
+                <span class="tile-icon">🐷</span>
+                <strong>Clip B</strong>
+                <em>Cartoon</em>
+              </div>
+            </div>
+            <button type="button" class="cta-primary" data-goto="lesson">
+              <span data-i18n="startLesson">Start today's lesson</span>
+              <kbd>START</kbd>
+            </button>
+          </article>
+
+          <div class="home-meters">
+            <div class="meter">
+              <div class="meter-head"><span>Accuracy</span><strong>94%</strong></div>
+              <div class="meter-bar"><i style="--w:94%"></i></div>
+            </div>
+            <div class="meter">
+              <div class="meter-head"><span>Flow</span><strong>GOOD</strong></div>
+              <div class="meter-bar meter-flow"><i style="--w:78%"></i></div>
+            </div>
+          </div>
+
+          <div class="home-footer-hint" data-i18n="previewHint">Preview mock · no copyrighted film</div>
+        </section>
+
+        <!-- ========== SCREEN 2: LESSON ========== -->
+        <section class="screen" id="screen-lesson" data-screen="lesson">
+          <div class="lesson-hud">
+            <button type="button" class="icon-btn" data-goto="home" aria-label="Back">←</button>
+            <div class="lesson-progress">
+              <i style="--p:50%"></i>
+            </div>
+            <div class="micro-meters">
+              <span class="micro"><em>ACC</em><strong>100</strong></span>
+              <span class="micro micro-xp"><em>XP</em><strong>+15</strong></span>
+            </div>
+            <div class="mascot-wrap mascot-mini">
+              <button type="button" class="mascot-btn mascot-btn-mini" id="mascot-lesson" aria-expanded="false" aria-controls="finish-popover-lesson" data-i18n-aria="mascotAria" aria-label="Open today's tone">
+                <span class="mascot-eye" aria-hidden="true">
+                  <span class="mascot-lid"></span>
+                  <span class="mascot-pupil"></span>
+                  <span class="mascot-shine"></span>
+                </span>
+              </button>
+            </div>
+            <div class="finish-wrap" id="finish-wrap-lesson">
+              <button type="button" class="finish-chip finish-mini" id="finish-chip-lesson" aria-expanded="false" aria-haspopup="true" aria-controls="finish-popover-lesson" data-i18n-title="toneTitle" data-i18n-aria="toneTitle" title="Today's tone" aria-label="Today's tone">
+                <span class="finish-chip-dots" aria-hidden="true">
+                  <i style="background:#58cc02"></i>
+                  <i style="background:#7c5cff"></i>
+                  <i style="background:#2f6fed"></i>
+                </span>
+                <em data-i18n="toneChip">Tone</em>
+              </button>
+              <div class="finish-popover" id="finish-popover-lesson" role="listbox" aria-label="Today's tone">
+                <div class="finish-popover-title" data-i18n="toneTitle">Today's tone</div>
+                <div class="finish-popover-sub" data-i18n="toneSub">Pick a finish. One color, one mood — then type.</div>
+                <div class="finish-grid" id="finish-grid-lesson"></div>
+                <label class="follow-tone">
+                  <input type="checkbox" class="follow-tone-input" />
+                  <span>
+                    <strong data-i18n="followTone">Follow today's tone</strong>
+                    <em data-i18n="followToneHint">Auto-picks a daily finish (optional)</em>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="clip-switch">
+            <button type="button" class="clip-chip is-on" data-clip="a">
+              <span class="dot war"></span> Clip A · War
+            </button>
+            <button type="button" class="clip-chip" data-clip="b">
+              <span class="dot toon"></span> Clip B · Cartoon
+            </button>
+          </div>
+
+          <div class="video-stage" id="video-stage">
+            <div class="video-poster poster-war" id="poster">
+              <div class="poster-grain" aria-hidden="true"></div>
+              <div class="poster-label">
+                <span>MOCK POSTER</span>
+                <strong>War drama · Scene 04</strong>
+              </div>
+              <button type="button" class="play-fab" aria-label="Play clip">
+                <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+              </button>
+            </div>
+            <div class="listen-bar">
+              <button type="button" class="listen-btn" title="Replay">↻</button>
+              <div class="wave" id="audio-wave" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <button type="button" class="listen-btn slow">0.75×</button>
+              <button type="button" class="interpret-fab" id="btn-interpret" aria-expanded="false" aria-controls="interpret-sheet">
+                <span class="interpret-fab-ico" aria-hidden="true">🏰</span>
+                <span data-i18n="interpret">Interpret</span>
+              </button>
+            </div>
+            <div class="audio-duck-badge" id="audio-duck-badge" hidden>
+              <span class="mute-ico" aria-hidden="true">🔇</span>
+              <span data-i18n="duckBadge">Volume lowered · video stays · keep the frame</span>
+            </div>
+          </div>
+
+          <div class="type-zone">
+            <div class="ref-line" aria-label="Assisted reference near typing">
+              <span class="ref-tag">LISTEN</span>
+              <span class="ref-text">I love you.</span>
+            </div>
+            <div class="type-rails" id="type-rails" role="textbox" aria-label="Type the line">
+              <span class="rail-word is-done">I</span>
+              <span class="rail-word is-done">love</span>
+              <span class="rail-word is-active">y<span class="caret"></span></span>
+              <span class="rail-word is-todo">you.</span>
+            </div>
+            <div class="type-actions">
+              <button type="button" class="btn-ghost" id="btn-skip-note" data-i18n="skipInterpret">Skip interpret</button>
+              <button type="button" class="cta-check" id="btn-check">
+                Check <kbd>↵</kbd>
+              </button>
+            </div>
+          </div>
+
+          <div class="kb-dock" aria-hidden="true">
+            <span data-i18n="kbDock">System keyboard area (mock · no fake keys)</span>
+          </div>
+
+          <div class="interpret-sheet" id="interpret-sheet" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="interpret-title">
+            <button type="button" class="interpret-scrim" id="interpret-scrim" data-i18n-aria="closeInterpret" aria-label="Close interpret"></button>
+            <div class="interpret-panel">
+              <div class="interpret-handle" aria-hidden="true"></div>
+              <div class="interpret-panel-head">
+                <div>
+                  <div class="interpret-kicker" data-i18n="interpretKicker">In-clip · stay on video</div>
+                  <h2 id="interpret-title" data-i18n="interpretTitle">Memory palace</h2>
+                </div>
+                <button type="button" class="interpret-close" id="btn-close-interpret" data-i18n-aria="close" aria-label="Close">×</button>
+              </div>
+              <div class="duck-note">
+                <span class="duck-pill">🔇 DUCK</span>
+                <span data-i18n="duckNote">Opening interpret ducks/mutes audio (mock); closing restores. The frame stays behind.</span>
+              </div>
+              <div class="palace-card-head interpret-lang">
+                <span class="lang-toggle">
+                  <button type="button" class="lang-btn is-on" data-lang="zh" data-scope="sheet" data-i18n="palaceNative">Native palace</button>
+                  <button type="button" class="lang-btn" data-lang="en" data-scope="sheet" data-i18n="enGloss">EN gloss</button>
+                </span>
+              </div>
+              <div class="interpret-body" id="interpret-body">
+                <p class="palace-zh sheet-zh" data-i18n="sheetZh" data-i18n-html>
+                  Pin this line to a <strong>flashlight in a muddy tent</strong>: not the three words alone, but a quiet goodbye under the fear of never meeting again. Next time you hear it, recall the light first — then the words.
+                </p>
+                <p class="palace-en sheet-en is-hidden" data-i18n="sheetEn" data-i18n-html>
+                  Anchor the line to a <strong>flashlight in a muddy tent</strong>: not romance — a quiet goodbye under the fear of never meeting again. Feel first, then the words.
+                </p>
+              </div>
+              <div class="palace-tags">
+                <span data-i18n="tagMood">Mood: farewell</span>
+                <span data-i18n="tagRegister">Register: wartime whisper</span>
+                <span data-i18n="tagContrast">Contrast: cartoon soft</span>
+              </div>
+              <div class="interpret-actions">
+                <button type="button" class="btn-ghost" id="btn-sheet-done" data-i18n="keepTyping">Keep typing</button>
+                <button type="button" class="cta-primary" id="btn-sheet-next">
+                  <span data-i18n="nextClip">Next · Clip B</span>
+                  <kbd>NEXT</kbd>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== SCREEN 3: PALACE ========== -->
+        <section class="screen" id="screen-palace" data-screen="palace">
+          <div class="lesson-hud">
+            <button type="button" class="icon-btn" data-goto="lesson" aria-label="Back">←</button>
+            <div class="palace-title-chip" data-i18n="palaceLib">Palace library</div>
+            <div class="micro-meters">
+              <span class="micro micro-ok"><em>OK</em><strong>✓</strong></span>
+            </div>
+          </div>
+
+          <div class="palace-hero">
+            <div class="palace-badge" data-i18n="palaceBadge">LIBRARY · saved</div>
+            <h2>“I love you.”</h2>
+            <p class="palace-line-meta" data-i18n="palaceMeta">Main path: tap Interpret on Clip · here is review only</p>
+          </div>
+
+          <article class="palace-card">
+            <div class="palace-card-head">
+              <span class="lang-toggle">
+                <button type="button" class="lang-btn is-on" data-lang="zh" data-i18n="palaceNative">Native palace</button>
+                <button type="button" class="lang-btn" data-lang="en" data-i18n="enGloss">EN gloss</button>
+              </span>
+            </div>
+            <div class="palace-body" id="palace-body">
+              <p class="palace-zh" data-i18n="sheetZh" data-i18n-html>
+                Pin this line to a <strong>flashlight in a muddy tent</strong>: not the three words alone, but a quiet goodbye under the fear of never meeting again. Next time you hear it, recall the light first — then the words.
+              </p>
+              <p class="palace-en is-hidden" data-i18n="sheetEn" data-i18n-html>
+                Anchor the line to a <strong>flashlight in a muddy tent</strong>: not romance — a quiet goodbye under the fear of never meeting again. Feel first, then the words.
+              </p>
+            </div>
+            <div class="palace-tags">
+              <span data-i18n="tagMood">Mood: farewell</span>
+              <span data-i18n="tagRegister">Register: wartime whisper</span>
+              <span data-i18n="tagContrast">Contrast: cartoon soft</span>
+            </div>
+          </article>
+
+          <button type="button" class="cta-primary cta-wide" data-goto="settle">
+            <span data-i18n="nextClip">Next · Clip B</span>
+            <kbd>NEXT</kbd>
+          </button>
+        </section>
+
+        <!-- ========== SCREEN 4: SETTLE ========== -->
+        <section class="screen" id="screen-settle" data-screen="settle">
+          <div class="settle-burst" aria-hidden="true"></div>
+          <div class="settle-head">
+            <span class="settle-emoji">🏰</span>
+            <h1 data-i18n="settleTitle">Lesson settle</h1>
+            <p data-i18n="settleSub">I love you · Clip A done</p>
+          </div>
+
+          <div class="settle-stats">
+            <div class="stat-card stat-xp">
+              <em>XP</em>
+              <strong>+42</strong>
+              <span class="stat-ring" style="--p:84%"></span>
+            </div>
+            <div class="stat-card">
+              <em>ACCURACY</em>
+              <strong>100%</strong>
+            </div>
+            <div class="stat-card">
+              <em>STREAK</em>
+              <strong>🔥 12</strong>
+            </div>
+          </div>
+
+          <div class="settle-goal">
+            <div class="meter-head"><span data-i18n="dailyGoal">Daily goal</span><strong>80 / 100 XP</strong></div>
+            <div class="meter-bar meter-goal"><i style="--w:80%"></i></div>
+          </div>
+
+          <div class="settle-next-card">
+            <div class="contrast-tile tile-toon mini">
+              <span class="tile-icon">🐷</span>
+            </div>
+            <div>
+              <strong>Next · Clip B</strong>
+              <em data-i18n="nextSoft">Cartoon soft · same line, sweet palace</em>
+            </div>
+          </div>
+
+          <div class="settle-actions">
+            <button type="button" class="btn-ghost" data-goto="home" data-i18n="backToday">Back to Today</button>
+            <button type="button" class="cta-primary" data-goto="lesson">
+              <span data-i18n="continueClipB">Continue Clip B</span>
+              <kbd>GO</kbd>
+            </button>
+          </div>
+        </section>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="notes">
+      <h3 data-i18n="notesTitle">Visual decisions (preview)</h3>
+      <ul>
+        <li data-i18n="note1">Cartoon HUD: warm radii + sharp meters — no muddy glass</li>
+        <li data-i18n="note2">No caption capsule on video; assist text only above typing</li>
+        <li data-i18n="note3">Bottom is system-keyboard mock dock — no fake QWERTY</li>
+        <li data-i18n="note4">Interpret opens in-clip sheet with duck; palace library is review only</li>
+        <li data-i18n="note5">Today's tone finishes (localStorage) · optional follow daily tone</li>
+        <li data-i18n="note6">Fully isolated from live Studio</li>
+        <li data-i18n="note7">Desktop/Pad: demo-unit shell · real phone: full-bleed</li>
+      </ul>
+    </aside>
+  </div>
+  <script src="js/i18n.js"></script>
+  <script src="js/palace.js"></script>
+  <script src="js/device-shell.js"></script>
+</body>
+</html>
