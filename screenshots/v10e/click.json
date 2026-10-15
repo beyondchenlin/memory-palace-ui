@@ -1,0 +1,21 @@
+{
+  "overlay": true,
+  "pointerEvents": "auto",
+  "screen": {
+    "left": 311,
+    "top": 222,
+    "w": 331,
+    "h": 708
+  },
+  "btn": {
+    "text": "JA",
+    "w": 31,
+    "h": 27
+  },
+  "hit": {
+    "tag": "BUTTON",
+    "cls": "",
+    "text": "JA"
+  },
+  "meshOverlay": true
+}

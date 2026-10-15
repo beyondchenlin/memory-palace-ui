@@ -1,0 +1,103 @@
+{
+  "results": [
+    {
+      "name": "boot",
+      "pass": true,
+      "detail": "{\"loadMs\":148,\"facing\":true,\"overlay\":true,\"phoneRot\":[0,4.71238898038469,0],\"size\":[1.4060370270863551,3.0125941729710184,0.002206557043781171],\"center\":[-0.00016719077180848974,0.3200000000272387,-0.11903027760087354],\"fit\":\"1\",\"floatAnim\":\"none\"}"
+    },
+    {
+      "name": "shell-fit-1",
+      "pass": true,
+      "detail": "fit=1"
+    },
+    {
+      "name": "no-float-anim",
+      "pass": true,
+      "detail": "anim=none"
+    },
+    {
+      "name": "front-large",
+      "pass": true,
+      "detail": "{\"left\":325.6939807370375,\"top\":151.31426617155176,\"width\":420.51188629912855,\"height\":898.5621450354549}"
+    },
+    {
+      "name": "front-high",
+      "pass": true,
+      "detail": "top=151.31426617155176"
+    },
+    {
+      "name": "tilt-uv-mode",
+      "pass": true,
+      "detail": "{\"facing\":false,\"overlay\":false,\"proj\":{\"left\":324.936550996246,\"top\":117.93607240632349,\"width\":361.51017728191033,\"height\":961.4773209262917}}"
+    },
+    {
+      "name": "after-still-large",
+      "pass": true,
+      "detail": "{\"left\":323.38657605724705,\"top\":149.00197421318097,\"width\":420.19280031890213,\"height\":902.9198728950194}"
+    },
+    {
+      "name": "after-still-high",
+      "pass": true,
+      "detail": "top=149.00197421318097"
+    },
+    {
+      "name": "no-drift",
+      "pass": true,
+      "detail": "dH=4.4 dTop=2.3"
+    }
+  ],
+  "logs": [
+    "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[info] [palace] bump-aware yaw 4.712 score 0.882",
+    "[info] [palace] chassis visible Cube010_black002_0",
+    "[info] [palace] back glass visible Cube010_glass002_0",
+    "[info] [palace] meshes Cube010_black002_0 mats=PaletteMaterial001 · Cube010_glass002_0 mats=PaletteMaterial002 · Cube010_screen001_0 mats=screen.001 · Cube010_Material007_0 mats=Material.007",
+    "[info] [palace] UV display mesh Cube010_screen001_0 (front screen.001 only — chassis kept)",
+    "[info] [palace] chassis ready 148 ms",
+    "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "boot": {
+    "loadMs": 148,
+    "facing": true,
+    "overlay": true,
+    "phoneRot": [
+      0,
+      4.71238898038469,
+      0
+    ],
+    "size": [
+      1.4060370270863551,
+      3.0125941729710184,
+      0.002206557043781171
+    ],
+    "center": [
+      -0.00016719077180848974,
+      0.3200000000272387,
+      -0.11903027760087354
+    ],
+    "fit": "1",
+    "floatAnim": "none"
+  },
+  "tilt": {
+    "facing": false,
+    "overlay": false,
+    "proj": {
+      "left": 324.936550996246,
+      "top": 117.93607240632349,
+      "width": 361.51017728191033,
+      "height": 961.4773209262917
+    }
+  },
+  "frontProj": {
+    "left": 325.6939807370375,
+    "top": 151.31426617155176,
+    "width": 420.51188629912855,
+    "height": 898.5621450354549
+  },
+  "after": {
+    "left": 323.38657605724705,
+    "top": 149.00197421318097,
+    "width": 420.19280031890213,
+    "height": 902.9198728950194
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "logs": [
+    "[palace] studio orient yaw 1.571",
+    "[palace] chassis visible Cube010_black002_0",
+    "[palace] back glass visible Cube010_glass002_0",
+    "[palace] meshes Cube010_black002_0 mats=PaletteMaterial001 · Cube010_glass002_0 mats=PaletteMaterial002 · Cube010_screen001_0 mats=screen.001 · Cube010_Material007_0 mats=Material.007",
+    "[palace] UV glue mesh Cube010_screen001_0 studio affine {\"repeat\":[-1.028278,-1],\"offset\":[0.020257,1.0019],\"clamp\":true}",
+    "[palace] chassis ready 135 ms",
+    "[palace] hasCapture undefined"
+  ],
+  "meta": {
+    "frontProj": null,
+    "orbit": {
+      "x": 1.4408039144707656,
+      "y": -5.05271186298158,
+      "viewX": 1.9559147378002886,
+      "viewY": 7.861204936481949
+    },
+    "orient": {
+      "normal": [
+        0.06324118600726672,
+        0.4527991189459829,
+        0.8893669154371193
+      ],
+      "center": [
+        0.014989985675322837,
+        0.27616944935878074,
+        0.11694668432021918
+      ],
+      "size": [
+        1.269799465006776,
+        2.7503562633743073,
+        0.2708932110149556
+      ],
+      "phoneRot": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "rootRot": [
+        0.03413715206289663,
+        0.1372039093156417,
+        0
+      ],
+      "overlay": false,
+      "lastGoodCapture": 15657
+    },
+    "fit": "1"
+  }
+}
