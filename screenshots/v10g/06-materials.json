@@ -1,0 +1,38 @@
+[
+  {
+    "mesh": "Cube010_black002_0",
+    "mat": "PaletteMaterial001",
+    "color": "#1a1c20",
+    "transparent": false,
+    "opacity": 1,
+    "metalness": 1,
+    "roughness": 0.38
+  },
+  {
+    "mesh": "Cube010_glass002_0",
+    "mat": "PaletteMaterial002",
+    "color": "#ffffff",
+    "transparent": false,
+    "opacity": 1,
+    "metalness": 1,
+    "roughness": 1
+  },
+  {
+    "mesh": "Cube010_screen001_0",
+    "mat": "",
+    "color": "#000000",
+    "transparent": false,
+    "opacity": 1,
+    "metalness": 0,
+    "roughness": 1
+  },
+  {
+    "mesh": "Cube010_Material007_0",
+    "mat": "Material.007",
+    "color": "#ffffff",
+    "transparent": false,
+    "opacity": 1,
+    "metalness": 0.18,
+    "roughness": 0.32
+  }
+]

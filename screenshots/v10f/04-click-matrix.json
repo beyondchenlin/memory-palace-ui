@@ -1,0 +1,67 @@
+{
+  "startHit": {
+    "pass": true,
+    "ok": true,
+    "cx": -11805,
+    "cy": 688.5,
+    "rect": {
+      "l": -11964,
+      "t": 661,
+      "w": 318,
+      "h": 55
+    },
+    "under": null,
+    "contains": false,
+    "label": "start"
+  },
+  "clipInfo": {
+    "cx": -11892.359375,
+    "cy": 409.59375,
+    "cls": "contrast-tile tile-war",
+    "text": "\n                🎖️\n         "
+  },
+  "toneInfo": {
+    "cx": -11841.96875,
+    "cy": 94,
+    "id": "mascot-home"
+  },
+  "langInfo": {
+    "cx": 505.453125,
+    "cy": 111.5
+  },
+  "afterStart": {
+    "pending": false,
+    "ready": true,
+    "classes": [
+      "has-gltf-chassis",
+      "has-glued-screen",
+      "has-texture-screen",
+      "has-gltf-ready"
+    ],
+    "fit": "0.833",
+    "mode": "shelled",
+    "topChrome": "island",
+    "unit": {
+      "l": 360.2,
+      "t": 171,
+      "w": 351.5,
+      "h": 729.7
+    },
+    "screen": {
+      "l": 379.2,
+      "t": 242.1,
+      "w": 313.7,
+      "h": 671.2,
+      "pe": "auto",
+      "overlay": true
+    },
+    "proj": {
+      "t": 222.2,
+      "h": 711,
+      "w": 332.3
+    },
+    "overlayMode": true,
+    "homeActive": true,
+    "lessonActive": false
+  }
+}

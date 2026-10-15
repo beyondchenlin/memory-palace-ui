@@ -1,7 +1,7 @@
-/* Memory Palace — formal product device stage v9
-   Mockiosa UV glue: CanvasTexture on glass + front HTML overlay (no CSS crop).
-   Outer-stage drag orbit with damping · small idle sway · gentle unlock.
-   Double-click outside → spring reset. No permanent model/color rail. */
+/* Memory Palace — formal product device stage v10g
+   UV glue: CanvasTexture on glass + front HTML overlay (no CSS crop).
+   Drag ANYWHERE outside phone glass = free orbit · dblclick outside = reset.
+   Inside glass = UI clicks only. Idle sway · gentle unlock. */
 (function () {
   const STORAGE_MODEL = "lt-palace-shell-model";
   const STORAGE_FINISH = "lt-palace-shell";
@@ -122,11 +122,17 @@
 
   function isPointOnScreen(clientX, clientY) {
     if (!screenEl) return false;
-    /* When CSS3D-glued, projected AABB balloons while orbiting — do NOT use it
-       for outer-drag gating. Element-under-cursor (isOverScreen) is enough. */
-    if (window.LT_MESH && window.LT_MESH.glued) return false;
+    /* Live overlay (front) uses fixed AABB — trust it for inside-glass gating.
+       While orbiting, overlay is parked; isOverScreen(target) still covers hits. */
     const s = screenEl.getBoundingClientRect();
+    if (s.width < 8 || s.height < 8) return false;
+    /* Ignore parked offscreen capture/overlay (-12000) */
+    if (s.left < -1000) return false;
     return clientX >= s.left && clientX <= s.right && clientY >= s.top && clientY <= s.bottom;
+  }
+
+  function isInsidePhoneGlass(target, clientX, clientY) {
+    return isOverScreen(target) || isPointOnScreen(clientX, clientY);
   }
 
   function isPointOnPhone(clientX, clientY) {
@@ -422,10 +428,17 @@
     hoverTiltY = 0;
     targetRotX = 0;
     targetRotY = 0;
-    /* spring toward front — damping still smooths */
+    /* Snap view immediately so dblclick feels instant + overlay returns */
+    viewRotX = 0;
+    viewRotY = 0;
     unit.classList.remove("is-back");
     unit.classList.add("is-spring");
     applyTransform();
+    syncViewToMesh();
+    if (window.LT_MESH) {
+      try { window.LT_MESH.setDragging?.(false); } catch (_) {}
+      try { window.LT_MESH.revealFront?.(); } catch (_) {}
+    }
     setTimeout(() => unit.classList.remove("is-spring"), 420);
     bumpIdle();
   }
@@ -686,8 +699,10 @@
   function onPointerDown(e) {
     if (isRealPhone() || prefersReduced() || screensaverOn) return;
     if (e.button != null && e.button !== 0) return;
-    /* v10d: LMB drag ANYWHERE on page (except chrome controls) = free rotate */
+    /* v10g: LMB drag ANYWHERE outside phone glass = free rotate.
+       Inside glass = UI clicks only (do not start orbit / hide overlay). */
     if (isChromeControl(e.target)) return;
+    if (isInsidePhoneGlass(e.target, e.clientX, e.clientY)) return;
     dragging = true;
     dragMoved = false;
     captureArmed = false;
@@ -700,7 +715,7 @@
     stage.classList.remove("is-floating");
     stage.classList.add("is-dragging");
     unit.classList.add("is-dragging");
-    if (window.LT_MESH && window.LT_MESH.setDragging) window.LT_MESH.setDragging(true);
+    /* Defer setDragging until real move — keeps front overlay clickable on press */
   }
 
   function onPointerMove(e) {
@@ -716,14 +731,19 @@
     const dy = e.clientY - lastY;
     if (!dragMoved && Math.abs(dx) + Math.abs(dy) > 4) {
       dragMoved = true;
+      if (window.LT_MESH && window.LT_MESH.setDragging) window.LT_MESH.setDragging(true);
       if (!captureArmed && activePointerId != null) {
         captureArmed = true;
         try {
           stage.setPointerCapture(activePointerId);
         } catch (_) {
           try {
-            rig.setPointerCapture(activePointerId);
-          } catch (_) {}
+            document.body.setPointerCapture(activePointerId);
+          } catch (_) {
+            try {
+              rig.setPointerCapture(activePointerId);
+            } catch (_) {}
+          }
         }
       }
     }
@@ -759,7 +779,8 @@
   function onOuterDblClick(e) {
     if (isRealPhone() || screensaverOn) return;
     if (isChromeControl(e.target)) return;
-    /* v10d: double-click ANYWHERE = reset to flat front */
+    /* v10g: double-click ANYWHERE outside phone glass = reset flat front */
+    if (isInsidePhoneGlass(e.target, e.clientX, e.clientY)) return;
     e.preventDefault();
     e.stopPropagation();
     resetOrbit();
@@ -767,7 +788,8 @@
 
   dampLoop();
 
-  stage.addEventListener("pointerdown", onPointerDown);
+  /* Window-level: drag/dblclick anywhere outside glass; stage alone missed page chrome gaps */
+  window.addEventListener("pointerdown", onPointerDown, true);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);

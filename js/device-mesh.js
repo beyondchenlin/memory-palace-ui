@@ -1,9 +1,11 @@
-/* Memory Palace v10e — size-locked reveal + clickable front
+/* Memory Palace v10g — size-locked UV glue + multi-chassis path
    Reference: phone-mockup-studio UV affine on screen.001
    - Moderate size locked to CSS unit (no grow after GLB)
    - Hide WebGL until texture captured; CSS copper shell meantime
    - One reveal: chassis + full UI, no white / no double-phone flash
-   - HTML overlay when near-front for clicks; UV while orbiting */
+   - HTML overlay when near-front for clicks; UV while orbiting
+   - Rear camera bump forced opaque white; finish tints chassis metal
+   - CHASSIS_REGISTRY: 17pm default · 15pm optional · android reserved */
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
@@ -15,17 +17,50 @@ const FRONT_DOT = 0.951; /* ~cos(18°) — clickable near-front; UV when orbitin
 const CAPTURE_MIN_MS = 280;
 const DRAG_CAPTURE_MS = 900;
 
-const CHASSIS = {
-  id: "17pm",
-  label: "iPhone 17 Pro Max",
-  url: "assets/models/iphone-17-pro-max.min.glb",
-  fallbackUrl: "assets/models/iphone-17-pro-max.glb",
-  screenMat: "screen.001",
-  rot: [0, Math.PI / 2, 0],
-  // Exact UV affine from phone-mockup-studio for this GLB screen.001
-  uv: { repeat: [-1.028278, -1], offset: [0.020257, 1.0019], clamp: true },
-  credit: "iPhone 17 Pro Max · phone-mockup-studio UV glue · meshopt",
+/** Real-device GLB registry. Island chrome only on island-family shells.
+ *  Android / hole-punch entries must set topChrome:"hole" and never draw CSS island.
+ *  Add new devices here + meshopt .min.glb; do not DIY SVG bodies. */
+const CHASSIS_REGISTRY = {
+  "17pm": {
+    id: "17pm",
+    label: "iPhone 17 Pro Max",
+    family: "island",
+    topChrome: "island",
+    url: "assets/models/iphone-17-pro-max.min.glb",
+    fallbackUrl: "assets/models/iphone-17-pro-max.glb",
+    screenMat: "screen.001",
+    rot: [0, Math.PI / 2, 0],
+    uv: { repeat: [-1.028278, -1], offset: [0.020257, 1.0019], clamp: true },
+    credit: "iPhone 17 Pro Max · phone-mockup-studio UV glue · meshopt",
+    cameraBumpMat: "Material.007",
+  },
+  "15pm": {
+    id: "15pm",
+    label: "iPhone 15 Pro Max",
+    family: "island",
+    topChrome: "island",
+    url: "assets/models/iphone-15-pro-max.glb",
+    fallbackUrl: "assets/models/iphone-15-pro-max.glb",
+    screenMat: "screen.001",
+    rot: [0, Math.PI / 2, 0],
+    /* Approximate until studio affine tuned — prefer 17pm in production */
+    uv: { repeat: [-1.02, -1], offset: [0.02, 1.0], clamp: true },
+    credit: "iPhone 15 Pro Max · Sketchfab CC BY · UV glue",
+    cameraBumpMat: "Material.007",
+  },
+  /* Reserved: drop meshopt Android GLB + UV affine, set family:"android" topChrome:"hole" */
+  android: null,
 };
+
+let CHASSIS = CHASSIS_REGISTRY["17pm"];
+
+function resolveChassisId(hint) {
+  const params = new URLSearchParams(location.search);
+  const q = (hint || params.get("chassis") || params.get("device") || "17pm").toLowerCase();
+  if (q === "15" || q === "15pm" || q === "iphone15") return "15pm";
+  if (q === "android" || q === "hole") return CHASSIS_REGISTRY.android ? "android" : "17pm";
+  return CHASSIS_REGISTRY[q] ? q : "17pm";
+}
 
 function makeBackTexture(line) {
   const c = document.createElement("canvas");
@@ -798,6 +833,81 @@ export function createDeviceMesh(opts = {}) {
     geom.attributes.uv.needsUpdate = true;
   }
 
+  /** Rear camera bump / lenses — opaque WHITE (never transparent glass void). */
+  function forceCameraBumpWhite(rootObj, bumpMatName) {
+    const want = (bumpMatName || "Material.007").toLowerCase();
+    rootObj.traverse((o) => {
+      if (!o.isMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const meshN = (o.name || "").toLowerCase();
+      mats.forEach((m, idx) => {
+        if (!m) return;
+        const n = (m.name || "").toLowerCase();
+        const isBump =
+          n === want ||
+          n.includes("material.007") ||
+          n.includes("material007") ||
+          n.includes("camera") ||
+          n.includes("lens") ||
+          n.includes("bump") ||
+          meshN.includes("material007");
+        if (!isBump) return;
+        const clone = m.clone();
+        if (clone.color) clone.color.setHex(0xffffff);
+        if (clone.emissive) {
+          clone.emissive.setHex(0xffffff);
+          clone.emissiveIntensity = 0.12;
+        }
+        clone.transparent = false;
+        clone.opacity = 1;
+        clone.depthWrite = true;
+        if ("metalness" in clone) clone.metalness = 0.18;
+        if ("roughness" in clone) clone.roughness = 0.32;
+        if (clone.map) clone.map = null; /* solid white plate, no see-through tex */
+        if (clone.alphaMap) clone.alphaMap = null;
+        clone.needsUpdate = true;
+        if (Array.isArray(o.material)) o.material[idx] = clone;
+        else o.material = clone;
+        console.info("[palace] camera bump → opaque white", o.name, m.name);
+      });
+    });
+  }
+
+  function tintChassisMetal(rootObj, hex) {
+    if (!rootObj || !hex) return;
+    let color;
+    try {
+      color = new THREE.Color(hex);
+    } catch (_) {
+      return;
+    }
+    rootObj.traverse((o) => {
+      if (!o.isMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const meshN = (o.name || "").toLowerCase();
+      mats.forEach((m, idx) => {
+        if (!m) return;
+        const n = (m.name || "").toLowerCase();
+        /* Metal frame only — not screen, not camera bump, not back glass UI */
+        const isMetal =
+          meshN.includes("black002") ||
+          n.includes("palette material001") ||
+          n.includes("palettematerial001") ||
+          (n.includes("metal") && !n.includes("screen"));
+        if (!isMetal) return;
+        const clone = m.clone();
+        if (clone.color) clone.color.copy(color);
+        if ("metalness" in clone) clone.metalness = Math.max(clone.metalness || 0, 0.65);
+        if ("roughness" in clone) clone.roughness = Math.min(clone.roughness ?? 0.4, 0.42);
+        clone.transparent = false;
+        clone.opacity = 1;
+        clone.needsUpdate = true;
+        if (Array.isArray(o.material)) o.material[idx] = clone;
+        else o.material = clone;
+      });
+    });
+  }
+
   function glueScreenUi(mesh) {
     if (!glued || !screenEl) return;
     screenMesh = mesh;
@@ -871,6 +981,20 @@ export function createDeviceMesh(opts = {}) {
       }
     });
     console.info("[palace] meshes", meshReport.join(" · "));
+    forceCameraBumpWhite(phoneRoot, CHASSIS.cameraBumpMat);
+    /* Ensure back glass never renders as transparent void over bump */
+    phoneRoot.traverse((o) => {
+      if (!o.isMesh) return;
+      if (!(o.name || "").toLowerCase().includes("glass002")) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach((m) => {
+        if (!m) return;
+        m.transparent = false;
+        m.opacity = 1;
+        m.depthWrite = true;
+        m.needsUpdate = true;
+      });
+    });
 
     // Keep native GLB UVs — studio maps via texture.repeat/offset only
     mesh.material = screenMat;
@@ -950,6 +1074,7 @@ export function createDeviceMesh(opts = {}) {
 
   async function loadChassis() {
     const t0 = performance.now();
+    CHASSIS = CHASSIS_REGISTRY[resolveChassisId()] || CHASSIS_REGISTRY["17pm"];
     try {
       if (MeshoptDecoder && MeshoptDecoder.ready) await MeshoptDecoder.ready;
     } catch (_) {}
@@ -1047,9 +1172,82 @@ export function createDeviceMesh(opts = {}) {
     if (phone) applyBackContent(phone);
   }
 
-  function setFinish() {}
-  function setModelUiId() {
-    return Promise.resolve(CHASSIS);
+  let finishHex = "#b85a28";
+  function setFinish(idOrHex) {
+    const map = {
+      obsidian: "#1a1c20",
+      sterling: "#c5cad3",
+      champagne: "#c9a86a",
+      cobalt: "#1e3a6e",
+      crimson: "#8b1e2d",
+      glacier: "#7eb8d4",
+      amethyst: "#5b3d8a",
+      graphite: "#4a4d52",
+      pearl: "#e8e4dc",
+      sand: "#b5a894",
+      duolingo: "#58cc02",
+      "violet-night": "#7c5cff",
+      "space-gold": "#c9a227",
+      "space-blue": "#2f6fed",
+      "product-red": "#e11d48",
+      "sierra-blue": "#69b4e8",
+      purple: "#9b5de5",
+      midnight: "#2c2c2e",
+      starlight: "#f5f0e8",
+      "natural-titanium": "#a89f91",
+    };
+    const hex =
+      (idOrHex && map[idOrHex]) ||
+      (typeof idOrHex === "string" && idOrHex.startsWith("#") ? idOrHex : null) ||
+      finishHex;
+    finishHex = hex;
+    if (phone) {
+      tintChassisMetal(phone, hex);
+      forceCameraBumpWhite(phone, CHASSIS.cameraBumpMat);
+    }
+  }
+  function setModelUiId(uiId) {
+    /* Map shell UI model ids → chassis registry. Android/hole keeps island GLB
+       until an android GLB ships — topChrome still comes from CSS model dataset. */
+    const map = {
+      island: "17pm",
+      slim: "17pm",
+      notch: "15pm",
+      curve: "15pm",
+      hole: "17pm",
+      dual: "17pm",
+      clean: "17pm",
+      flat: "17pm",
+      "17pm": "17pm",
+      "15pm": "15pm",
+    };
+    const next = map[uiId] || resolveChassisId(uiId);
+    if (!CHASSIS_REGISTRY[next] || next === CHASSIS.id) {
+      return Promise.resolve(CHASSIS);
+    }
+    /* Hot-swap chassis (rare); keep current if load fails */
+    CHASSIS = CHASSIS_REGISTRY[next];
+    return loadChassis()
+      .then(() => {
+        setFinish(finishHex);
+        matchCssUnitFraming();
+        revealFrontSafe();
+        return CHASSIS;
+      })
+      .catch((err) => {
+        console.warn("[palace] chassis swap failed", err);
+        CHASSIS = CHASSIS_REGISTRY["17pm"];
+        return CHASSIS;
+      });
+  }
+  function revealFrontSafe() {
+    facingCamera = true;
+    draggingHint = false;
+    rotX = 0;
+    rotY = 0;
+    root.rotation.x = 0;
+    root.rotation.y = 0;
+    showOverlay();
   }
 
   let frameCount = 0;
@@ -1076,9 +1274,31 @@ export function createDeviceMesh(opts = {}) {
     ready,
     glued: true,
     textureScreen: true,
-    chassis: { "17pm": CHASSIS },
+    chassis: CHASSIS_REGISTRY,
+    getChassis: () => CHASSIS,
     setModelUiId,
     setFinish,
+    dumpMaterials() {
+      if (!phone) return [];
+      const out = [];
+      phone.traverse((o) => {
+        if (!o.isMesh) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          out.push({
+            mesh: o.name,
+            mat: m.name,
+            color: m.color ? "#" + m.color.getHexString() : null,
+            transparent: !!m.transparent,
+            opacity: m.opacity,
+            metalness: m.metalness,
+            roughness: m.roughness,
+          });
+        });
+      });
+      return out;
+    },
     setRotation,
     setDragging(on) {
       draggingHint = !!on;

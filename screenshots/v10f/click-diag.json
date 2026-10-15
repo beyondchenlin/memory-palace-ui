@@ -1,0 +1,97 @@
+{
+  "overlayMode": true,
+  "facing": true,
+  "screens": [
+    {
+      "cls": "device-screen-capture-clone is-texture-screen",
+      "tag": "DIV",
+      "l": -12000,
+      "t": 0,
+      "w": 390,
+      "h": 844,
+      "pe": "none",
+      "opacity": "1",
+      "parent": "device-screen-capture-host"
+    },
+    {
+      "cls": "device-screen is-overlay-screen is-texture-screen",
+      "tag": "DIV",
+      "l": 379.1875,
+      "t": 242.078125,
+      "w": 313.671875,
+      "h": 671.171875,
+      "pe": "auto",
+      "opacity": "1",
+      "parent": "has-gltf-chassis has-glued-screen has-texture-screen has-gltf-ready"
+    }
+  ],
+  "hit": {
+    "cx": 536.0234375,
+    "cy": 765.5921875,
+    "tag": "SPAN",
+    "cls": "",
+    "text": "Start today's lesson",
+    "closestBtn": "cta-primary",
+    "closestGoto": "lesson"
+  },
+  "btns": [
+    {
+      "l": -11964,
+      "t": 669,
+      "w": 318,
+      "h": 55,
+      "inOverlay": false
+    },
+    {
+      "l": 0,
+      "t": 0,
+      "w": 0,
+      "h": 0,
+      "inOverlay": false
+    },
+    {
+      "l": 0,
+      "t": 0,
+      "w": 0,
+      "h": 0,
+      "inOverlay": false
+    },
+    {
+      "l": 0,
+      "t": 0,
+      "w": 0,
+      "h": 0,
+      "inOverlay": false
+    },
+    {
+      "l": 415.1875,
+      "t": 729.671875,
+      "w": 241.671875,
+      "h": 78,
+      "inOverlay": true
+    },
+    {
+      "l": 0,
+      "t": 0,
+      "w": 0,
+      "h": 0,
+      "inOverlay": true
+    },
+    {
+      "l": 0,
+      "t": 0,
+      "w": 0,
+      "h": 0,
+      "inOverlay": true
+    },
+    {
+      "l": 0,
+      "t": 0,
+      "w": 0,
+      "h": 0,
+      "inOverlay": true
+    }
+  ],
+  "home": true,
+  "lesson": false
+}

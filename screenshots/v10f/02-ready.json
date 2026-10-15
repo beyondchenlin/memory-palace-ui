@@ -1,0 +1,35 @@
+{
+  "pending": false,
+  "ready": true,
+  "classes": [
+    "has-gltf-chassis",
+    "has-glued-screen",
+    "has-texture-screen",
+    "has-gltf-ready"
+  ],
+  "fit": "0.833",
+  "mode": "shelled",
+  "topChrome": "island",
+  "unit": {
+    "l": 360.2,
+    "t": 171,
+    "w": 351.5,
+    "h": 729.7
+  },
+  "screen": {
+    "l": 379.2,
+    "t": 242.1,
+    "w": 313.7,
+    "h": 671.2,
+    "pe": "auto",
+    "overlay": true
+  },
+  "proj": {
+    "t": 222.2,
+    "h": 711,
+    "w": 332.3
+  },
+  "overlayMode": true,
+  "homeActive": true,
+  "lessonActive": false
+}

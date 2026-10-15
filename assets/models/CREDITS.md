@@ -1,6 +1,6 @@
 # 3D chassis credits
 
-## Active (v8)
+## Active (v10g)
 | File | Model | Author | License | Notes |
 |------|-------|--------|---------|-------|
 | `iphone-17-pro-max.min.glb` | iPhone 17 Pro Max | MajdyModels | CC BY 4.0 | meshopt + webp, ~191 KB |
@@ -16,3 +16,5 @@ Raised camera bump is part of the mesh (not drawn in CSS/SVG).
 | `iphone-15-pro-max.glb` | iPhone 15 Pro | Sketcher (CC BY 4.0) |
 
 On-page credit: `#device-credit`.
+
+See DEVICES.md for multi-chassis roadmap.

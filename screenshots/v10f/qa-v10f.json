@@ -1,0 +1,174 @@
+{
+  "results": [
+    {
+      "name": "no-unit-jump",
+      "pass": true,
+      "detail": "{\"dTop\":4,\"dH\":0,\"dW\":0,\"pendingFit\":\"0.833\",\"readyFit\":\"0.833\"}"
+    },
+    {
+      "name": "overlay-diff-recorded",
+      "pass": true,
+      "detail": "{\"diffPx\":263538,\"pct\":19.815}"
+    },
+    {
+      "name": "overlay-on-ready",
+      "pass": true,
+      "detail": "{\"overlayMode\":true,\"screen\":{\"l\":379.2,\"t\":242.1,\"w\":313.7,\"h\":671.2,\"pe\":\"auto\",\"overlay\":true}}"
+    },
+    {
+      "name": "fit-locked",
+      "pass": true,
+      "detail": "fit=0.833"
+    },
+    {
+      "name": "click-start-lesson",
+      "pass": false,
+      "detail": "{\"startHit\":{\"pass\":true,\"ok\":true,\"cx\":-11805,\"cy\":688.5,\"rect\":{\"l\":-11964,\"t\":661,\"w\":318,\"h\":55},\"under\":null,\"contains\":false,\"label\":\"start\"},\"lessonActive\":false,\"homeActive\":true}"
+    },
+    {
+      "name": "click-clip",
+      "pass": true,
+      "detail": "{\"cx\":-11892.359375,\"cy\":409.59375,\"cls\":\"contrast-tile tile-war\",\"text\":\"\\n                🎖️\\n         \"}"
+    },
+    {
+      "name": "click-tone",
+      "pass": false,
+      "detail": "{\"cx\":-11841.96875,\"cy\":94,\"id\":\"mascot-home\"}"
+    },
+    {
+      "name": "click-lang",
+      "pass": true,
+      "detail": "{\"cx\":505.453125,\"cy\":111.5}"
+    },
+    {
+      "name": "bp-desktop",
+      "pass": false,
+      "detail": "{\"realPhone\":false,\"mode\":\"shelled\",\"topChrome\":\"island\",\"hasGltf\":true,\"islandDisplay\":\"none\",\"unitW\":351.5260009765625,\"expect\":{\"shelled\":true,\"waitReady\":true,\"island\":true}}"
+    },
+    {
+      "name": "bp-pad-portrait",
+      "pass": true,
+      "detail": "{\"realPhone\":false,\"mode\":\"shelled\",\"topChrome\":\"island\",\"hasGltf\":true,\"islandDisplay\":\"none\",\"unitW\":386.552001953125,\"expect\":{\"shelled\":true,\"waitReady\":true}}"
+    },
+    {
+      "name": "bp-pad-landscape",
+      "pass": true,
+      "detail": "{\"realPhone\":false,\"mode\":\"shelled\",\"topChrome\":\"island\",\"hasGltf\":true,\"islandDisplay\":\"none\",\"unitW\":266.281982421875,\"expect\":{\"shelled\":true,\"waitReady\":true}}"
+    },
+    {
+      "name": "bp-phone-narrow",
+      "pass": true,
+      "detail": "{\"realPhone\":true,\"mode\":\"unshelled\",\"topChrome\":\"none\",\"hasGltf\":false,\"islandDisplay\":\"none\",\"unitW\":342,\"expect\":{\"shelled\":false,\"waitReady\":false,\"mobileUA\":true,\"island\":false}}"
+    },
+    {
+      "name": "bp-forcePhone",
+      "pass": true,
+      "detail": "{\"realPhone\":true,\"mode\":\"unshelled\",\"topChrome\":\"none\",\"hasGltf\":false,\"islandDisplay\":\"none\",\"unitW\":1352,\"expect\":{\"shelled\":false,\"waitReady\":false,\"island\":false}}"
+    },
+    {
+      "name": "bp-forceShell-narrow",
+      "pass": true,
+      "detail": "{\"realPhone\":false,\"mode\":\"shelled\",\"topChrome\":\"island\",\"hasGltf\":true,\"islandDisplay\":\"none\",\"unitW\":302.15203857421875,\"expect\":{\"shelled\":true,\"waitReady\":true}}"
+    },
+    {
+      "name": "android-no-island",
+      "pass": true,
+      "detail": "{\"model\":\"hole\",\"topChrome\":\"hole\",\"islandDisplay\":\"none\",\"holeDisplay\":\"none\"}"
+    }
+  ],
+  "jump": {
+    "dTop": 4,
+    "dH": 0,
+    "dW": 0,
+    "pendingFit": "0.833",
+    "readyFit": "0.833"
+  },
+  "pending": {
+    "pending": true,
+    "ready": false,
+    "classes": [
+      "is-gltf-pending"
+    ],
+    "fit": "0.833",
+    "mode": "shelled",
+    "topChrome": "island",
+    "unit": {
+      "l": 360.2,
+      "t": 175,
+      "w": 351.5,
+      "h": 729.7
+    },
+    "screen": {
+      "l": 696.3,
+      "t": 887.2,
+      "w": 0,
+      "h": 0,
+      "pe": "auto",
+      "overlay": false
+    },
+    "proj": null,
+    "overlayMode": false,
+    "homeActive": true,
+    "lessonActive": false
+  },
+  "ready": {
+    "pending": false,
+    "ready": true,
+    "classes": [
+      "has-gltf-chassis",
+      "has-glued-screen",
+      "has-texture-screen",
+      "has-gltf-ready"
+    ],
+    "fit": "0.833",
+    "mode": "shelled",
+    "topChrome": "island",
+    "unit": {
+      "l": 360.2,
+      "t": 171,
+      "w": 351.5,
+      "h": 729.7
+    },
+    "screen": {
+      "l": 379.2,
+      "t": 242.1,
+      "w": 313.7,
+      "h": 671.2,
+      "pe": "auto",
+      "overlay": true
+    },
+    "proj": {
+      "t": 222.2,
+      "h": 711,
+      "w": 332.3
+    },
+    "overlayMode": true,
+    "homeActive": true,
+    "lessonActive": false
+  },
+  "logs": [
+    "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[info] [palace] studio orient yaw 1.571",
+    "[info] [palace] chassis visible Cube010_black002_0",
+    "[info] [palace] back glass visible Cube010_glass002_0",
+    "[info] [palace] meshes Cube010_black002_0 mats=PaletteMaterial001 · Cube010_glass002_0 mats=PaletteMaterial002 · Cube010_screen001_0 mats=screen.001 · Cube010_Material007_0 mats=Material.007",
+    "[info] [palace] UV glue mesh Cube010_screen001_0 studio affine {\"repeat\":[-1.028278,-1],\"offset\":[0.020257,1.0019],\"clamp\":true}",
+    "[info] [palace] framed z= 5.60 wantH= 711",
+    "[error] Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[info] [palace] framed z= 5.60 wantH= 711",
+    "[info] [palace] framed z= 5.60 wantH= 711",
+    "[info] [palace] chassis ready 75 ms",
+    "[info] [palace] framed z= 5.48 wantH= 711",
+    "[info] [palace] framed z= 5.48 wantH= 711",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good",
+    "[warn] [palace] capture looked empty — keeping fallback/last good"
+  ]
+}

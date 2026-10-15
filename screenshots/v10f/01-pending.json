@@ -1,0 +1,28 @@
+{
+  "pending": true,
+  "ready": false,
+  "classes": [
+    "is-gltf-pending"
+  ],
+  "fit": "0.833",
+  "mode": "shelled",
+  "topChrome": "island",
+  "unit": {
+    "l": 360.2,
+    "t": 175,
+    "w": 351.5,
+    "h": 729.7
+  },
+  "screen": {
+    "l": 696.3,
+    "t": 887.2,
+    "w": 0,
+    "h": 0,
+    "pe": "auto",
+    "overlay": false
+  },
+  "proj": null,
+  "overlayMode": false,
+  "homeActive": true,
+  "lessonActive": false
+}
