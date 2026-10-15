@@ -1,0 +1,9 @@
+{
+  "name": "lingotrace-palace-ui",
+  "private": true,
+  "version": "0.10.0",
+  "description": "Standalone Memory Palace UI preview \u2014 not Studio",
+  "dependencies": {
+    "three": "0.170.0"
+  }
+}

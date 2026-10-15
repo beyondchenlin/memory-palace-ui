@@ -1,0 +1,8 @@
+node_modules
+palace-ui-report
+screenshots
+*.bak
+*.bak-*
+qa-*.mjs
+index.html.bak*
+assets/models/iphone-15-pro-max.glb
