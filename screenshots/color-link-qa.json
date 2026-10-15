@@ -1,0 +1,170 @@
+{
+  "baseline": {
+    "shell": "obsidian",
+    "tone": "duolingo",
+    "wash": "#e5f6d4",
+    "shellOn": [
+      "obsidian"
+    ],
+    "toneOn": [
+      "duolingo",
+      "duolingo"
+    ],
+    "green": "#58cc02",
+    "map": {
+      "obsidian": "midnight",
+      "sterling": "starlight",
+      "champagne": "space-gold",
+      "cobalt": "space-blue",
+      "crimson": "product-red",
+      "glacier": "sierra-blue",
+      "amethyst": "violet-night",
+      "graphite": "natural-titanium",
+      "pearl": "starlight",
+      "sand": "natural-titanium"
+    }
+  },
+  "afterShellCobalt": {
+    "shell": "cobalt",
+    "tone": "space-blue",
+    "wash": "#dce8fb",
+    "shellOn": [
+      "cobalt"
+    ],
+    "toneOn": [
+      "space-blue",
+      "space-blue"
+    ],
+    "green": "#2f6fed",
+    "map": {
+      "obsidian": "midnight",
+      "sterling": "starlight",
+      "champagne": "space-gold",
+      "cobalt": "space-blue",
+      "crimson": "product-red",
+      "glacier": "sierra-blue",
+      "amethyst": "violet-night",
+      "graphite": "natural-titanium",
+      "pearl": "starlight",
+      "sand": "natural-titanium"
+    }
+  },
+  "expectShellCobalt": {
+    "shell": "cobalt",
+    "tone": "space-blue"
+  },
+  "afterToneProductRed": {
+    "shell": "crimson",
+    "tone": "product-red",
+    "wash": "#f8dde4",
+    "shellOn": [
+      "crimson"
+    ],
+    "toneOn": [
+      "product-red",
+      "product-red"
+    ],
+    "green": "#e11d48",
+    "map": {
+      "obsidian": "midnight",
+      "sterling": "starlight",
+      "champagne": "space-gold",
+      "cobalt": "space-blue",
+      "crimson": "product-red",
+      "glacier": "sierra-blue",
+      "amethyst": "violet-night",
+      "graphite": "natural-titanium",
+      "pearl": "starlight",
+      "sand": "natural-titanium"
+    }
+  },
+  "expectToneRed": {
+    "shell": "crimson",
+    "tone": "product-red"
+  },
+  "afterShellChampagne": {
+    "shell": "champagne",
+    "tone": "space-gold",
+    "wash": "#f5edd4",
+    "shellOn": [
+      "champagne"
+    ],
+    "toneOn": [
+      "space-gold",
+      "space-gold"
+    ],
+    "green": "#d4a017",
+    "map": {
+      "obsidian": "midnight",
+      "sterling": "starlight",
+      "champagne": "space-gold",
+      "cobalt": "space-blue",
+      "crimson": "product-red",
+      "glacier": "sierra-blue",
+      "amethyst": "violet-night",
+      "graphite": "natural-titanium",
+      "pearl": "starlight",
+      "sand": "natural-titanium"
+    }
+  },
+  "expectChamp": {
+    "shell": "champagne",
+    "tone": "space-gold"
+  },
+  "afterToneViolet": {
+    "shell": "amethyst",
+    "tone": "violet-night",
+    "wash": "#ebe4ff",
+    "shellOn": [
+      "amethyst"
+    ],
+    "toneOn": [
+      "violet-night",
+      "violet-night"
+    ],
+    "green": "#7c5cff",
+    "map": {
+      "obsidian": "midnight",
+      "sterling": "starlight",
+      "champagne": "space-gold",
+      "cobalt": "space-blue",
+      "crimson": "product-red",
+      "glacier": "sierra-blue",
+      "amethyst": "violet-night",
+      "graphite": "natural-titanium",
+      "pearl": "starlight",
+      "sand": "natural-titanium"
+    }
+  },
+  "expectViolet": {
+    "shell": "amethyst",
+    "tone": "violet-night"
+  },
+  "checks": [
+    {
+      "name": "shell→tone cobalt",
+      "ok": true
+    },
+    {
+      "name": "tone→shell product-red",
+      "ok": true
+    },
+    {
+      "name": "shell→tone champagne",
+      "ok": true
+    },
+    {
+      "name": "tone→shell violet",
+      "ok": true
+    },
+    {
+      "name": "wash changes from shell",
+      "ok": true
+    },
+    {
+      "name": "wash changes from tone",
+      "ok": true
+    }
+  ],
+  "pass": true
+}
