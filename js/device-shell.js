@@ -968,6 +968,9 @@ window.LT_SHELL = {
     setOrbit: function (x, y, snap) {
       rotX = x || 0;
       rotY = y || 0;
+      if (Math.abs(rotX) < 8 && Math.abs(rotY) < 8 && window.LT_MESH?.revealFront) {
+        window.LT_MESH.revealFront();
+      }
       hoverTiltX = 0;
       hoverTiltY = 0;
       targetRotX = rotX;

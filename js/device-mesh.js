@@ -126,35 +126,46 @@ function roundRect(ctx, x, y, w, h, r, fill) {
   ctx.fill();
 }
 
-/** Sample canvas — true if real UI ink exists (not blank white/near-white wash). */
+/** Sample canvas — true if real UI ink exists in MID glass (not status-bar-only / white wash). */
 function canvasHasContent(canvas) {
   try {
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     const { width: w, height: h } = canvas;
-    const step = 28;
+    const step = 24;
     let lit = 0;
     let ink = 0;
+    let midInk = 0;
+    let midN = 0;
     let n = 0;
     let sum = 0;
     let sum2 = 0;
+    const y0 = Math.floor(h * 0.12);
+    const y1 = Math.floor(h * 0.88);
     for (let y = step; y < h - step; y += step) {
       for (let x = step; x < w - step; x += step) {
         const d = ctx.getImageData(x, y, 1, 1).data;
         const s = d[0] + d[1] + d[2];
+        const sat = Math.max(d[0], d[1], d[2]) - Math.min(d[0], d[1], d[2]);
+        const isInk = s < 520 || sat > 28;
         sum += s;
         sum2 += s * s;
         if (s > 40) lit++;
-        /* Dark or saturated pixels = real UI (text/cards), not flat white glass */
-        if (s < 520 || Math.max(d[0], d[1], d[2]) - Math.min(d[0], d[1], d[2]) > 28) ink++;
+        if (isInk) ink++;
         n++;
+        if (y >= y0 && y <= y1) {
+          midN++;
+          if (isInk) midInk++;
+        }
       }
     }
-    if (n <= 0) return false;
+    if (n <= 0 || midN <= 0) return false;
     const mean = sum / n;
     const variance = sum2 / n - mean * mean;
-    /* Reject near-uniform white/light wash (the white-screen bug) */
-    if (mean > 680 && variance < 900) return false;
-    return lit / n > 0.08 && ink / n > 0.04;
+    /* Reject near-uniform white/light wash */
+    if (mean > 660 && variance < 1200) return false;
+    /* Status-bar-only captures look white on tilt — require mid-glass ink */
+    if (midInk / midN < 0.06) return false;
+    return lit / n > 0.08 && ink / n > 0.05;
   } catch (_) {
     return false;
   }
@@ -343,7 +354,10 @@ export function createDeviceMesh(opts = {}) {
     if (!unit || !screenMesh || !phone) return;
     const urect = unit.getBoundingClientRect();
     if (urect.height < 80) return;
-    const want = urect.height * 0.98;
+    /* Prefer CSS-unit height when shell-fit applied; else ~80% stage (moderate). */
+    const stageH = Math.max(420, window.innerHeight - 160);
+    const moderate = stageH * 0.90;
+    const want = Math.min(urect.height * 0.98, moderate);
     let zLo = 5.2;
     let zHi = 11.5;
     for (let i = 0; i < 14; i++) {
@@ -450,7 +464,7 @@ export function createDeviceMesh(opts = {}) {
     const host = ensureCaptureHost();
     host.innerHTML = "";
     const wrap = document.createElement("div");
-    wrap.className = "device-screen is-texture-screen";
+    wrap.className = "device-screen-capture-clone is-texture-screen";
     wrap.style.cssText = `width:${PX_W}px;height:${PX_H}px;position:relative;overflow:hidden;background:#050608;border-radius:44px;`;
     Array.from(screenEl.children).forEach((child) => {
       const clone = child.cloneNode(true);
@@ -544,6 +558,10 @@ export function createDeviceMesh(opts = {}) {
       if (!canvasHasContent(uiCanvas)) {
         console.warn("[palace] capture looked empty — keeping fallback/last good");
         if (!lastGoodCapture) {
+          paintFallbackUi(uiCanvas, "LingoTrace");
+          lastGoodCapture = performance.now();
+        } else {
+          /* restore last good by repainting fallback rather than leaving white */
           paintFallbackUi(uiCanvas, "LingoTrace");
         }
       } else {
@@ -679,10 +697,12 @@ export function createDeviceMesh(opts = {}) {
   }
 
   function showOverlay() {
-    if (!screenEl || !facingCamera) return;
+    if (!screenEl) return;
+    facingCamera = true;
     const proj = projectScreenCorners();
     if (!proj) {
-      hideOverlayKeepTexture();
+      /* Keep trying — never leave a permanent park if we intend front */
+      console.warn("[palace] showOverlay: no projection yet");
       return;
     }
 
@@ -898,10 +918,17 @@ export function createDeviceMesh(opts = {}) {
   }
 
   function updateFacing() {
+    /* Until boot reveals, keep HTML inside CSS copper shell — no overlay flash */
+    if (document.body.classList.contains("is-gltf-pending")) {
+      facingCamera = true;
+      return;
+    }
+    if (!document.body.classList.contains("has-gltf-ready")) {
+      return;
+    }
     const yRad = THREE.MathUtils.degToRad(rotY);
     const xRad = THREE.MathUtils.degToRad(rotX);
     const faceDot = Math.cos(yRad) * Math.cos(xRad);
-    /* Dead-front only — any real orbit is CanvasTexture welded to screen.001 */
     const deadFront =
       !draggingHint &&
       Math.abs(rotX) < 14 &&
@@ -965,9 +992,8 @@ export function createDeviceMesh(opts = {}) {
     matchCssUnitFraming();
     await waitForGoodCapture(5000);
     matchCssUnitFraming();
-    /* Front overlay for clicks — size matches projected glass */
+    /* Keep HTML in CSS bezel until boot flips has-gltf-ready (avoids double-phone). */
     facingCamera = true;
-    showOverlay();
 
     placeholder.classList.add("is-gone");
     setTimeout(() => placeholder.remove(), 200);
@@ -984,13 +1010,33 @@ export function createDeviceMesh(opts = {}) {
     rotY = yDeg || 0;
     root.rotation.x = THREE.MathUtils.degToRad(rotX);
     root.rotation.y = THREE.MathUtils.degToRad(rotY);
-    /* Any meaningful orbit → UV mode (HTML AABB overlay would desync) */
-    draggingHint = Math.abs(rotX) > 10 || Math.abs(rotY) > 10;
-    if (draggingHint && overlayMode) {
-      syncCaptureClone();
-      captureUiToTexture(true);
+    const orbiting = Math.abs(rotX) > 10 || Math.abs(rotY) > 10;
+    draggingHint = orbiting;
+    if (orbiting) {
+      /* Always stamp lesson fallback onto glass BEFORE hide — html-to-image
+         often yields status-bar-only white on remote; never show blank glass. */
+      if (uiCanvas && uiTex) {
+        paintFallbackUi(uiCanvas, "LingoTrace");
+        applyStudioUv(uiTex);
+        if (screenMat) {
+          screenMat.emissiveMap = uiTex;
+          if (screenMat.emissive) screenMat.emissive.set(0xffffff);
+          screenMat.emissiveIntensity = 1.15;
+          screenMat.needsUpdate = true;
+        }
+        uiTex.needsUpdate = true;
+        lastGoodCapture = performance.now();
+      }
+      if (overlayMode) {
+        syncCaptureClone();
+        captureUiToTexture(true); /* async upgrade if richer capture lands */
+      }
       hideOverlayKeepTexture();
       facingCamera = false;
+    } else if (document.body.classList.contains("has-gltf-ready")) {
+      /* Returned to front (incl. damp end) — restore HTML hit layer */
+      facingCamera = true;
+      showOverlay();
     }
   }
 
@@ -1045,6 +1091,21 @@ export function createDeviceMesh(opts = {}) {
     },
     setBackLine,
     matchCssUnitFraming,
+    revealFront() {
+      facingCamera = true;
+      draggingHint = false;
+      rotX = 0;
+      rotY = 0;
+      root.rotation.x = 0;
+      root.rotation.y = 0;
+      showOverlay();
+      /* If projection not ready yet, retry next frames */
+      if (!overlayMode) {
+        requestAnimationFrame(() => showOverlay());
+        setTimeout(() => showOverlay(), 50);
+        setTimeout(() => showOverlay(), 200);
+      }
+    },
     resize,
     captureNow: () => {
       syncCaptureClone();

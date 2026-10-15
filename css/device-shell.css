@@ -1810,6 +1810,15 @@ body.has-texture-screen .device-webgl {
   opacity: 1 !important;
   background: #050608;
 }
+.device-screen-capture-clone {
+  width: 390px !important;
+  height: 844px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: #050608 !important;
+  border-radius: 44px !important;
+  pointer-events: none !important;
+}
 
 .device-screen.is-texture-screen {
   box-sizing: border-box !important;
@@ -2061,7 +2070,8 @@ body.has-texture-screen .demo-stage.is-floating .device-float,
 body.has-glued-screen .product-stage.is-dragging .device-float,
 body.has-texture-screen .product-stage.is-dragging .device-float {
   animation: none !important;
-  transform: none !important;
+  transform: scale(var(--shell-fit, 0.88)) !important;
+  transform-origin: top center !important;
 }
 body.has-glued-screen .device-rig,
 body.has-texture-screen .device-rig {
@@ -2101,6 +2111,29 @@ body.is-gltf-pending .device-screen {
   width: auto !important;
   height: auto !important;
   transform: none !important;
+  background: #f4f6f8 !important;
+  z-index: 3 !important;
+  display: block !important;
+}
+body.is-gltf-pending .device-screen .phone {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+body.is-gltf-pending .device-face-front {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+body.is-gltf-pending .device-3d {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  opacity: 1 !important;
 }
 body.is-gltf-pending .device-float {
   transform: scale(var(--shell-fit, 0.88)) !important;

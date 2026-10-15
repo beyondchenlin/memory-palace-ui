@@ -1,0 +1,17 @@
+{
+  "ready": true,
+  "overlay": true,
+  "pe": "auto",
+  "screen": {
+    "l": 347,
+    "t": 308,
+    "w": 258,
+    "h": 552
+  },
+  "hit": null,
+  "clicked": true,
+  "proj": {
+    "w": 273,
+    "h": 585
+  }
+}

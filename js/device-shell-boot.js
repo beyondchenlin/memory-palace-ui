@@ -5,7 +5,10 @@ const mount = document.getElementById("device-webgl-mount");
 const creditEl = document.getElementById("device-credit");
 const screenEl = document.querySelector(".device-screen");
 const rig = document.getElementById("device-rig");
-const stage = document.querySelector(".demo-stage") || document.querySelector(".product-stage");
+const stage =
+  document.getElementById("demo-stage") ||
+  document.querySelector(".product-stage") ||
+  document.querySelector(".demo-stage");
 
 function setModerateFit() {
   if (!stage) return;
@@ -42,7 +45,9 @@ async function boot() {
       });
       window.LT_MESH = mesh;
       await mesh.ready;
-      /* One-shot reveal: WebGL already size-locked + textured + overlay for clicks */
+      setModerateFit();
+      mesh.matchCssUnitFraming?.();
+      /* Atomic reveal: classes + overlay in same turn — no copper+HTML double */
       document.body.classList.add(
         "has-gltf-chassis",
         "has-glued-screen",
@@ -50,8 +55,7 @@ async function boot() {
         "has-gltf-ready",
       );
       document.body.classList.remove("is-gltf-pending");
-      setModerateFit();
-      mesh.matchCssUnitFraming?.();
+      mesh.revealFront?.();
       mesh.resize?.();
       console.info("[palace] chassis ready", mesh.getLoadMs?.(), "ms");
     } catch (err) {
@@ -77,6 +81,7 @@ async function boot() {
   if (window.LT_MESH?.matchCssUnitFraming) {
     requestAnimationFrame(() => {
       window.LT_MESH.matchCssUnitFraming();
+      window.LT_MESH.revealFront?.();
       window.LT_MESH.resize?.();
     });
   }
