@@ -1,23 +1,16 @@
-/* Memory Palace — formal product device stage v10g
-   UV glue: CanvasTexture on glass + front HTML overlay (no CSS crop).
-   Drag ANYWHERE outside phone glass = free orbit · dblclick outside = reset.
-   Inside glass = UI clicks only. Idle sway · gentle unlock. */
+/* Memory Palace — device shell controller
+   Desktop + Pad: shelled CSS-3D unit (drag bezel to spin).
+   Real narrow phone: full-bleed, no fake island.
+   CRITICAL: screen interior keeps pointer-events — tilt/drag never steal clicks. */
 (function () {
   const STORAGE_MODEL = "lt-palace-shell-model";
   const STORAGE_FINISH = "lt-palace-shell";
-  const STORAGE_SS_LOCK = "lt-palace-ss-lock";
-  const STORAGE_SS_PIN = "lt-palace-ss-pin";
-  const IDLE_MS = 60000;
 
   const MODELS = [
-    { id: "island", name: "Island Pro", brand: "Apex", topChrome: "island" },
-    { id: "notch", name: "Classic Notch", brand: "Nova", topChrome: "notch" },
-    { id: "hole", name: "Android Hole", brand: "Pulse", topChrome: "hole" },
-    { id: "clean", name: "Clean Frame", brand: "Horizon", topChrome: "none" },
-    { id: "dual", name: "Dual Punch", brand: "Orbit", topChrome: "hole" },
-    { id: "slim", name: "Edge Slim", brand: "Vela", topChrome: "island" },
-    { id: "curve", name: "Soft Curve", brand: "Lumen", topChrome: "notch" },
-    { id: "flat", name: "Flat Glass", brand: "Terra", topChrome: "none" },
+    { id: "island", name: "Island Pro", topChrome: "island" },
+    { id: "notch", name: "Classic Notch", topChrome: "notch" },
+    { id: "hole", name: "Android Hole", topChrome: "hole" },
+    { id: "clean", name: "Clean", topChrome: "none" },
   ];
 
   const FINISHES = [
@@ -33,7 +26,7 @@
     { id: "sand", name: "Sand", swatch: "#b5a894", wash: "#f3eee4" },
   ];
 
-  /* Optional soft link: shell finish → nearest today's tone */
+  /* Bidirectional link: shell finish ↔ in-phone Today's tone (hue pairing) */
   const SHELL_TO_TONE = {
     obsidian: "midnight",
     sterling: "starlight",
@@ -46,6 +39,18 @@
     pearl: "starlight",
     sand: "natural-titanium",
   };
+  const TONE_TO_SHELL = {
+    midnight: "obsidian",
+    starlight: "sterling",
+    "space-gold": "champagne",
+    "space-blue": "cobalt",
+    "product-red": "crimson",
+    "sierra-blue": "glacier",
+    "violet-night": "amethyst",
+    purple: "amethyst",
+    "natural-titanium": "sand",
+    duolingo: "obsidian",
+  };
 
   const stage = document.getElementById("demo-stage");
   const unit = document.getElementById("device-unit");
@@ -54,16 +59,16 @@
   const modelEl = document.getElementById("shell-models");
   const nameEl = document.getElementById("shell-name");
   const screenEl = document.querySelector(".device-screen");
-  const ssEl = document.getElementById("phone-screensaver");
-  const ssTime = document.getElementById("ss-time");
-  const ssDate = document.getElementById("ss-date");
-  const ssHint = document.getElementById("ss-hint");
-  const ssPinForm = document.getElementById("ss-pin");
-  const ssPinInput = document.getElementById("ss-pin-input");
-  const ssPinUnlock = document.getElementById("ss-pin-unlock");
-  const ssPinErr = document.getElementById("ss-pin-err");
   if (!stage || !unit || !rig) return;
 
+  let linkingFromShell = false;
+  let linkingFromTone = false;
+
+  // Rotation state (deg)
+  // Left/right (rotY) hard-capped at ±80 so the phone never stands on edge.
+  // Up/down (rotX) stays the prior gentle clamp.
+  const MAX_YAW = 80;
+  const MAX_PITCH = 68;
   let rotX = 0;
   let rotY = 0;
   let dragging = false;
@@ -72,21 +77,7 @@
   let lastY = 0;
   let hoverTiltX = 0;
   let hoverTiltY = 0;
-  let idleTimer = 0;
-  let ssClock = 0;
-  let screensaverOn = false;
-  let pinGate = false;
-  let captureArmed = false;
   let activePointerId = null;
-  let shakeBuf = [];
-  let orbitAnim = null;
-  /* Silky orbit: targets jump on drag, view lerps every frame */
-  let viewRotX = 0;
-  let viewRotY = 0;
-  let targetRotX = 0;
-  let targetRotY = 0;
-  let dampRaf = 0;
-  const DAMP = 0.16; /* higher = snappier; 0.12–0.2 feels silky */
 
   function tShell(key, fallback) {
     try {
@@ -114,63 +105,36 @@
 
   function isOverScreen(target) {
     if (!target || !screenEl) return false;
-    if (window.LT_MESH && window.LT_MESH.glued && window.LT_MESH.getFacingBack && window.LT_MESH.getFacingBack()) {
-      return false;
-    }
     return screenEl.contains(target) || (target.closest && target.closest(".device-screen"));
   }
 
-  function isPointOnScreen(clientX, clientY) {
-    if (!screenEl) return false;
-    /* Live overlay (front) uses fixed AABB — trust it for inside-glass gating.
-       While orbiting, overlay is parked; isOverScreen(target) still covers hits. */
-    const s = screenEl.getBoundingClientRect();
-    if (s.width < 8 || s.height < 8) return false;
-    /* Ignore parked offscreen capture/overlay (-12000) */
-    if (s.left < -1000) return false;
-    return clientX >= s.left && clientX <= s.right && clientY >= s.top && clientY <= s.bottom;
+  function isOverPhoneShell(target) {
+    if (!target || !unit) return false;
+    if (isOverScreen(target)) return true;
+    return unit.contains(target) || (target.closest && target.closest("#device-unit, .device-unit"));
   }
 
-  function isInsidePhoneGlass(target, clientX, clientY) {
-    return isOverScreen(target) || isPointOnScreen(clientX, clientY);
-  }
-
-  function isPointOnPhone(clientX, clientY) {
-    if (!unit) return false;
-    const u = unit.getBoundingClientRect();
-    return clientX >= u.left && clientX <= u.right && clientY >= u.top && clientY <= u.bottom;
-  }
-
-  function isChromeControl(target) {
+  /** Buttons / pickers / pet / top bar — never start orbit or dblclick-reset on these. */
+  function isInteractiveChrome(target) {
     if (!target || !target.closest) return false;
-    return !!(
-      target.closest(".shell-rail") ||
-      target.closest(".shell-lock-panel") ||
-      target.closest(".shell-lock-btn") ||
-      target.closest(".shell-model") ||
-      target.closest(".shell-swatch") ||
-      target.closest(".stage-bar") ||
-      target.closest(".site-tips") ||
-      target.closest("#stage-pet") ||
-      target.closest(".stage-pet") ||
-      target.closest(".lang-switch")
+    return !!target.closest(
+      "button, a, input, select, textarea, label, option," +
+        "[role='button'], [role='option'], [role='tab'], [role='listbox'], [role='dialog']," +
+        ".shell-bar, .shell-compact, .shell-dd, .shell-dd-panel, .stage-bar, .lang-switch, .screen-tabs," +
+        "#stage-pet, .stage-pet, .finish-popover, .finish-wrap"
     );
   }
 
-  /** Outside phone = stage chrome around unit (or bezel rim), never the glass UI */
-  function isOuterOrbitTarget(target, clientX, clientY) {
-    if (isChromeControl(target)) return false;
-    if (isOverScreen(target) || isPointOnScreen(clientX, clientY)) return false;
-    /* Anywhere in stage/rig that is not the screen — includes empty stage + bezel rim */
-    if (target.closest && (target.closest("#demo-stage") || target.closest(".product-stage") || target.closest("#device-rig"))) {
-      return true;
-    }
-    return false;
+  function clampOrbit() {
+    rotX = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, rotX));
+    rotY = Math.max(-MAX_YAW, Math.min(MAX_YAW, rotY));
   }
 
-  function facingBack() {
-    let y = ((viewRotY % 360) + 360) % 360;
-    return y > 100 && y < 260;
+  /** Empty page / bezel / glow — OK to orbit. Not screen UI, not chrome controls. */
+  function canStartOrbit(target) {
+    if (isOverScreen(target)) return false;
+    if (isInteractiveChrome(target)) return false;
+    return true;
   }
 
   function applyTransform() {
@@ -178,50 +142,15 @@
       unit.style.setProperty("--shell-tilt-x", "0deg");
       unit.style.setProperty("--shell-tilt-y", "0deg");
       unit.classList.remove("is-back");
-      unit.classList.remove("is-orbiting");
-      targetRotX = 0;
-      targetRotY = 0;
-      viewRotX = 0;
-      viewRotY = 0;
-      if (window.LT_MESH) window.LT_MESH.setRotation(0, 0);
       return;
     }
-    targetRotX = rotX + hoverTiltX;
-    targetRotY = rotY + hoverTiltY;
-    /* v9: ONLY rotate shared Three.js root; viewRot lerps in dampLoop */
-    unit.style.setProperty("--shell-tilt-x", "0deg");
-    unit.style.setProperty("--shell-tilt-y", "0deg");
-  }
-
-  function syncViewToMesh() {
-    if (isRealPhone()) return;
-    if (window.LT_MESH) window.LT_MESH.setRotation(viewRotX, viewRotY);
-    const back = window.LT_MESH && typeof window.LT_MESH.getFacingBack === "function"
-      ? window.LT_MESH.getFacingBack()
-      : (() => {
-          let y = ((viewRotY % 360) + 360) % 360;
-          return y > 100 && y < 260;
-        })();
-    unit.classList.toggle("is-back", back && !screensaverOn);
-  }
-
-  function dampLoop() {
-    dampRaf = requestAnimationFrame(dampLoop);
-    if (isRealPhone()) return;
-    const dx = targetRotX - viewRotX;
-    let dy = targetRotY - viewRotY;
-    /* shortest-path wrap for yaw so 350→10 doesn't spin the long way */
-    if (dy > 180) dy -= 360;
-    if (dy < -180) dy += 360;
-    viewRotX += dx * DAMP;
-    viewRotY += dy * DAMP;
-    if (viewRotY > 360) viewRotY -= 360;
-    if (viewRotY < -360) viewRotY += 360;
-    if (Math.abs(dx) < 0.02 && Math.abs(dy) < 0.02) {
-      viewRotX = targetRotX;
-      viewRotY = targetRotY;
-    }
-    syncViewToMesh();
+    const x = rotX + hoverTiltX;
+    const y = rotY + hoverTiltY;
+    unit.style.setProperty("--shell-tilt-x", x.toFixed(2) + "deg");
+    unit.style.setProperty("--shell-tilt-y", y.toFixed(2) + "deg");
+    // With ±80 yaw we stay front-ish; keep class off so screen stays clickable
+    unit.classList.toggle("is-back", false);
+    document.dispatchEvent(new CustomEvent('lt-shell-render', { detail: { x, y } }));
   }
 
   function fitScale() {
@@ -229,32 +158,20 @@
       stage.style.setProperty("--shell-fit", "1");
       return;
     }
-    /* Always moderate CSS unit size — WebGL matches via matchCssUnitFraming.
-       Never force fit=1 (that caused the post-GLB grow). */
-    const availH = Math.max(420, window.innerHeight - 200);
-    const availW = Math.max(260, Math.min(window.innerWidth - 64, 420));
-    const unitH = 900;
+    // Fit portrait unit into available viewport under chrome bars
+    const availH = Math.max(420, window.innerHeight - 120);
+    const availW = Math.max(280, Math.min(window.innerWidth - 48, 520));
+    const unitH = 900; // bezel + padding approx
     const unitW = 430;
-    const s = Math.min(0.92, availH / unitH, availW / unitW);
+    const s = Math.min(1, availH / unitH, availW / unitW);
     stage.style.setProperty("--shell-fit", s.toFixed(3));
-    if (window.LT_MESH?.matchCssUnitFraming) {
-      requestAnimationFrame(() => window.LT_MESH.matchCssUnitFraming());
-    }
-  }
-
-  function applyPageWash(hex) {
-    if (!hex) return;
-    const root = document.documentElement;
-    root.style.setProperty("--page-wash", hex);
-    root.style.setProperty("--page-wash-soft", "color-mix(in srgb, " + hex + " 55%, #f4f6f8)");
-    root.dataset.pageWash = hex;
   }
 
   function applyMode() {
     const phone = isRealPhone();
     document.body.classList.toggle("is-real-phone", phone);
     stage.dataset.mode = phone ? "unshelled" : "shelled";
-    stage.classList.toggle("is-floating", !phone && !prefersReduced() && !dragging && !screensaverOn);
+    stage.classList.toggle("is-floating", !phone && !prefersReduced() && !dragging);
     if (phone) {
       rotX = 0;
       rotY = 0;
@@ -262,8 +179,6 @@
       hoverTiltY = 0;
       unit.dataset.topChrome = "none";
       stage.dataset.topChrome = "none";
-      stopShowcaseOrbit();
-      hideScreensaver(true);
     } else {
       const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
       unit.dataset.topChrome = model.topChrome;
@@ -271,43 +186,6 @@
     }
     applyTransform();
     fitScale();
-  }
-
-  function svgFrame(chrome) {
-    /* Original flat smartphone frames — currentColor fillable, no trademarks */
-    if (chrome === "island") {
-      return (
-        '<svg class="shell-model-svg" viewBox="0 0 40 72" aria-hidden="true">' +
-        '<rect x="4" y="2" width="32" height="68" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-        '<rect x="12" y="6" width="16" height="4" rx="2" fill="currentColor"/>' +
-        '<rect x="8" y="12" width="24" height="50" rx="2" fill="currentColor" opacity="0.18"/>' +
-        "</svg>"
-      );
-    }
-    if (chrome === "notch") {
-      return (
-        '<svg class="shell-model-svg" viewBox="0 0 40 72" aria-hidden="true">' +
-        '<rect x="4" y="2" width="32" height="68" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-        '<path d="M12 2h16v6a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V2z" fill="currentColor"/>' +
-        '<rect x="8" y="14" width="24" height="48" rx="2" fill="currentColor" opacity="0.18"/>' +
-        "</svg>"
-      );
-    }
-    if (chrome === "hole") {
-      return (
-        '<svg class="shell-model-svg" viewBox="0 0 40 72" aria-hidden="true">' +
-        '<rect x="4" y="2" width="32" height="68" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-        '<circle cx="20" cy="9" r="2.2" fill="currentColor"/>' +
-        '<rect x="8" y="14" width="24" height="48" rx="2" fill="currentColor" opacity="0.18"/>' +
-        "</svg>"
-      );
-    }
-    return (
-      '<svg class="shell-model-svg" viewBox="0 0 40 72" aria-hidden="true">' +
-      '<rect x="4" y="2" width="32" height="68" rx="8" fill="none" stroke="currentColor" stroke-width="2.5"/>' +
-      '<rect x="8" y="10" width="24" height="52" rx="2" fill="currentColor" opacity="0.18"/>' +
-      "</svg>"
-    );
   }
 
   function applyModel(id, persist) {
@@ -329,7 +207,6 @@
       });
     }
     updateName();
-    bumpIdle();
     if (persist !== false) {
       try {
         localStorage.setItem(STORAGE_MODEL, model.id);
@@ -337,46 +214,134 @@
     }
   }
 
+  function applyPageWash(hex) {
+    if (!hex) return;
+    const root = document.documentElement;
+    root.style.setProperty("--page-wash", hex);
+    root.style.setProperty("--page-wash-soft", "color-mix(in srgb, " + hex + " 55%, #f4f6f8)");
+    root.dataset.pageWash = hex;
+  }
+
   function applyFinish(id, persist, linkTone) {
     const finish = FINISHES.find((s) => s.id === id) || FINISHES[0];
     unit.dataset.shell = finish.id;
     stage.dataset.shell = finish.id;
     document.documentElement.style.setProperty("--shell-accent-live", finish.swatch);
-    applyPageWash(finish.wash || finish.swatch);
+    /* Shell wash is a fallback; linked tone wash wins when tone sync runs */
+    if (!linkingFromTone) {
+      applyPageWash(finish.wash || finish.swatch);
+    }
     if (swatches) {
       swatches.querySelectorAll(".shell-swatch").forEach((b) => {
         b.classList.toggle("is-on", b.dataset.shell === finish.id);
         b.setAttribute("aria-selected", b.dataset.shell === finish.id ? "true" : "false");
       });
     }
-    if (modelEl) {
-      modelEl.style.color = finish.swatch;
-      modelEl.querySelectorAll(".shell-model").forEach((b) => {
-        b.style.color = finish.swatch;
-      });
-    }
     updateName();
-    bumpIdle();
     if (persist !== false) {
       try {
         localStorage.setItem(STORAGE_FINISH, finish.id);
       } catch (_) {}
     }
-    if (linkTone !== false && window.LT_PALACE && typeof window.LT_PALACE.applyFinish === "function") {
+    if (linkTone !== false && !linkingFromTone && window.LT_PALACE && typeof window.LT_PALACE.applyFinish === "function") {
       const toneId = SHELL_TO_TONE[finish.id];
       if (toneId) {
+        linkingFromShell = true;
         try {
-          window.LT_PALACE.applyFinish(toneId, true);
-        } catch (_) {}
+          /* Manual shell pick turns off daily follow */
+          try {
+            localStorage.setItem("lt-palace-follow-tone", "0");
+          } catch (_) {}
+          document.querySelectorAll(".follow-tone-input").forEach((el) => {
+            el.checked = false;
+          });
+          window.LT_PALACE.applyFinish(toneId, persist !== false);
+        } catch (_) {
+        } finally {
+          linkingFromShell = false;
+        }
       }
     }
   }
 
-  function updateName() {
-    if (!nameEl) return;
+  function updateCompactIcons() {
     const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
     const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
-    nameEl.textContent = model.brand + " " + model.name + " · " + finish.name;
+    const mini = document.getElementById("shell-mini");
+    if (mini) {
+      mini.dataset.chrome = model.topChrome || "none";
+      mini.style.setProperty("--shell-mini-fill", finish.swatch);
+      const chrome = mini.querySelector(".shell-mini-chrome");
+      if (chrome) chrome.dataset.chrome = model.topChrome || "none";
+    }
+    document.documentElement.style.setProperty("--shell-mini-fill", finish.swatch);
+    const dot = document.getElementById("shell-color-dot");
+    if (dot) {
+      dot.style.background = "linear-gradient(145deg, " + finish.swatch + ", #000)";
+    }
+    const colorName = document.getElementById("shell-color-name");
+    if (colorName) colorName.textContent = finish.name;
+    const modelBtn = document.getElementById("shell-model-btn");
+    if (modelBtn) modelBtn.title = model.name + " · " + finish.name;
+    const colorBtn = document.getElementById("shell-color-btn");
+    if (colorBtn) colorBtn.title = finish.name;
+  }
+
+  function updateName() {
+    const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
+    const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
+    if (nameEl) nameEl.textContent = model.name + " · " + finish.name;
+    updateCompactIcons();
+  }
+
+  function closeShellDrawers() {
+    document.querySelectorAll(".shell-dd-panel").forEach((p) => {
+      p.hidden = true;
+      p.classList.remove("is-open");
+    });
+    document.querySelectorAll(".shell-icon-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+  }
+
+  function toggleShellDrawer(kind) {
+    const panelId = kind === "model" ? "shell-model-panel" : "shell-color-panel";
+    const btnId = kind === "model" ? "shell-model-btn" : "shell-color-btn";
+    const panel = document.getElementById(panelId);
+    const btn = document.getElementById(btnId);
+    if (!panel || !btn) return;
+    const willOpen = panel.hidden;
+    closeShellDrawers();
+    if (willOpen) {
+      panel.hidden = false;
+      panel.classList.add("is-open");
+      btn.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  function wireCompactChrome() {
+    const modelBtn = document.getElementById("shell-model-btn");
+    const colorBtn = document.getElementById("shell-color-btn");
+    if (modelBtn) {
+      modelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleShellDrawer("model");
+      });
+    }
+    if (colorBtn) {
+      colorBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleShellDrawer("color");
+      });
+    }
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t && t.closest && t.closest(".shell-compact")) return;
+      closeShellDrawers();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeShellDrawers();
+    });
   }
 
   function buildModels() {
@@ -389,16 +354,14 @@
       btn.dataset.model = m.id;
       btn.dataset.topChrome = m.topChrome;
       btn.setAttribute("role", "option");
-      btn.setAttribute("aria-label", m.brand + " " + m.name);
-      btn.innerHTML =
-        svgFrame(m.topChrome) +
-        '<span class="shell-model-meta"><span class="shell-model-brand">' +
-        m.brand +
-        '</span><span class="shell-model-name">' +
-        m.name +
-        "</span></span>";
-      btn.title = m.brand + " · " + m.name;
-      btn.addEventListener("click", () => applyModel(m.id));
+      btn.setAttribute("aria-label", m.name);
+      btn.textContent = m.name;
+      btn.title = m.name + " (" + m.topChrome + ")";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        applyModel(m.id);
+        closeShellDrawers();
+      });
       modelEl.appendChild(btn);
     });
   }
@@ -411,267 +374,28 @@
       btn.type = "button";
       btn.className = "shell-swatch";
       btn.dataset.shell = s.id;
-      btn.style.background = "linear-gradient(145deg, " + s.swatch + ", color-mix(in srgb, " + s.swatch + " 40%, #000))";
+      btn.style.background = `linear-gradient(145deg, ${s.swatch}, #000)`;
       btn.title = s.name;
       btn.setAttribute("role", "option");
       btn.setAttribute("aria-label", s.name);
-      btn.addEventListener("click", () => applyFinish(s.id));
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        applyFinish(s.id);
+        closeShellDrawers();
+      });
       swatches.appendChild(btn);
     });
   }
 
-  function resetOrbit() {
-    stopShowcaseOrbit();
-    rotX = 0;
-    rotY = 0;
-    hoverTiltX = 0;
-    hoverTiltY = 0;
-    targetRotX = 0;
-    targetRotY = 0;
-    /* Snap view immediately so dblclick feels instant + overlay returns */
-    viewRotX = 0;
-    viewRotY = 0;
-    unit.classList.remove("is-back");
-    unit.classList.add("is-spring");
-    applyTransform();
-    syncViewToMesh();
-    if (window.LT_MESH) {
-      try { window.LT_MESH.setDragging?.(false); } catch (_) {}
-      try { window.LT_MESH.revealFront?.(); } catch (_) {}
-    }
-    setTimeout(() => unit.classList.remove("is-spring"), 420);
-    bumpIdle();
-  }
-
-  function flipToBack() {
-    stopShowcaseOrbit();
-    rotY = 180;
-    rotX = -6;
-    hoverTiltX = 0;
-    hoverTiltY = 0;
-    applyTransform();
-    bumpIdle();
-  }
-
-  function toggleFlip() {
-    if (facingBack()) resetOrbit();
-    else flipToBack();
-  }
-
-  /* —— Screensaver + showcase orbit —— */
-  function formatSsClock() {
-    const d = new Date();
-    const h = d.getHours();
-    const m = String(d.getMinutes()).padStart(2, "0");
-    const hh = ((h + 11) % 12) + 1;
-    if (ssTime) ssTime.textContent = hh + ":" + m;
-    if (ssDate) {
-      try {
-        ssDate.textContent = d.toLocaleDateString(undefined, {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        });
-      } catch (_) {
-        ssDate.textContent = "";
-      }
-    }
-  }
-
-  function lockEnabled() {
-    try {
-      return localStorage.getItem(STORAGE_SS_LOCK) === "1" && !!localStorage.getItem(STORAGE_SS_PIN);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function getPin() {
-    try {
-      return localStorage.getItem(STORAGE_SS_PIN) || "";
-    } catch (_) {
-      return "";
-    }
-  }
-
-  function startShowcaseOrbit() {
-    /* v7: SMALL idle sway only — never auto-orbit to full back */
-    stopShowcaseOrbit();
-    if (prefersReduced() || isRealPhone()) return;
-    unit.classList.add("is-orbiting");
-    stage.classList.add("is-showcase");
-    const start = performance.now();
-    const baseY = 0;
-    const ampY = 7;   /* gentle left-right */
-    const ampX = 2.5; /* slight up-down */
-    const period = 5200;
-    function tick(now) {
-      if (!screensaverOn) {
-        stopShowcaseOrbit();
-        return;
-      }
-      const t = (now - start) / period;
-      rotY = baseY + ampY * Math.sin(t * Math.PI * 2);
-      rotX = -ampX * Math.sin(t * Math.PI * 2 * 0.85 + 0.4);
-      hoverTiltX = 0;
-      hoverTiltY = 0;
-      applyTransform();
-      orbitAnim = requestAnimationFrame(tick);
-    }
-    orbitAnim = requestAnimationFrame(tick);
-  }
-
-  function stopShowcaseOrbit() {
-    if (orbitAnim) {
-      cancelAnimationFrame(orbitAnim);
-      orbitAnim = null;
-    }
-    unit.classList.remove("is-orbiting");
-    stage.classList.remove("is-showcase");
-  }
-
-  function showScreensaver() {
-    if (isRealPhone() || !ssEl || screensaverOn) return;
-    screensaverOn = true;
-    pinGate = false;
-    ssEl.hidden = false;
-    ssEl.setAttribute("aria-hidden", "false");
-    stage.classList.add("is-screensaver");
-    stage.classList.remove("is-floating");
-    if (ssPinForm) ssPinForm.hidden = true;
-    if (ssPinErr) ssPinErr.hidden = true;
-    if (ssHint) {
-      ssHint.hidden = false;
-      ssHint.textContent = lockEnabled()
-        ? tShell("screensaverHintLock", "Move or tap logo · then enter PIN")
-        : tShell("screensaverHint", "Move slightly or tap the logo to unlock");
-    }
-    formatSsClock();
-    if (ssClock) clearInterval(ssClock);
-    ssClock = setInterval(formatSsClock, 15000);
-    startShowcaseOrbit();
-    /* Glue screensaver onto screen.001 immediately */
-    if (window.LT_MESH && window.LT_MESH.captureNow) {
-      setTimeout(() => window.LT_MESH.captureNow(), 80);
-      setTimeout(() => window.LT_MESH.captureNow(), 400);
-    }
-  }
-
-  function hideScreensaver(silent) {
-    if (!ssEl) return;
-    const was = screensaverOn;
-    screensaverOn = false;
-    pinGate = false;
-    moveAccum = 0;
-    lastMoveX = null;
-    lastMoveY = null;
-    ssEl.hidden = true;
-    ssEl.setAttribute("aria-hidden", "true");
-    stage.classList.remove("is-screensaver");
-    stopShowcaseOrbit();
-    if (ssClock) {
-      clearInterval(ssClock);
-      ssClock = 0;
-    }
-    if (ssPinForm) ssPinForm.hidden = true;
-    if (!silent && was && !isRealPhone() && !prefersReduced() && !dragging) {
-      stage.classList.add("is-floating");
-    }
-    if (was && window.LT_MESH && window.LT_MESH.captureNow) {
-      setTimeout(() => window.LT_MESH.captureNow(), 60);
-    }
-  }
-
-  function wakeToPin() {
-    pinGate = true;
-    if (ssPinForm) ssPinForm.hidden = false;
-    if (ssHint) ssHint.hidden = true;
-    if (ssPinInput) {
-      ssPinInput.value = "";
-      try {
-        ssPinInput.focus();
-      } catch (_) {}
-    }
-    if (ssPinErr) ssPinErr.hidden = true;
-  }
-
-  function tryUnlockWithPin() {
-    const entered = (ssPinInput && ssPinInput.value) || "";
-    if (entered && entered === getPin()) {
-      hideScreensaver();
-      bumpIdle();
-      return true;
-    }
-    if (ssPinErr) ssPinErr.hidden = false;
-    return false;
-  }
-
-  function requestUnlock() {
-    if (!screensaverOn) return;
-    gentleUnlock();
-  }
-
-  function bumpIdle() {
-    if (screensaverOn && !pinGate) hideScreensaver(true);
-    else if (!screensaverOn) {
-      /* already off */
-    }
-    if (idleTimer) clearTimeout(idleTimer);
-    if (isRealPhone()) return;
-    idleTimer = setTimeout(showScreensaver, IDLE_MS);
-  }
-
-  /* —— Gentle unlock: slight mouse move OR logo/brand tap (no shake threshold) —— */
-  let moveAccum = 0;
-  let lastMoveX = null;
-  let lastMoveY = null;
-  function playUnlockAnim(done) {
-    if (ssEl) {
-      ssEl.classList.add("is-unlocking");
-      stage.classList.add("is-unlocking");
-    }
-    setTimeout(() => {
-      if (ssEl) ssEl.classList.remove("is-unlocking");
-      stage.classList.remove("is-unlocking");
-      if (done) done();
-    }, 420);
-  }
-  function gentleUnlock() {
-    if (!screensaverOn) return;
-    if (lockEnabled()) {
-      wakeToPin();
-      return;
-    }
-    playUnlockAnim(() => {
-      hideScreensaver();
-      bumpIdle();
-    });
-  }
-  function onShakeSample(e) {
-    if (!screensaverOn || pinGate) return;
-    if (lastMoveX == null) {
-      lastMoveX = e.clientX;
-      lastMoveY = e.clientY;
-      return;
-    }
-    const dx = e.clientX - lastMoveX;
-    const dy = e.clientY - lastMoveY;
-    lastMoveX = e.clientX;
-    lastMoveY = e.clientY;
-    moveAccum += Math.hypot(dx, dy);
-    /* low threshold — a slight nudge wakes, not a frantic shake */
-    if (moveAccum > 28) {
-      moveAccum = 0;
-      lastMoveX = null;
-      lastMoveY = null;
-      gentleUnlock();
-    }
-  }
-
-  /* —— Orbit: outside phone / not on screen —— */
+  /* —— Interaction: screen clicks ALWAYS win ——
+     Hover tilt: only when pointer is over rig but NOT over .device-screen
+     Drag rotate: empty page / bezel (not screen, not chrome buttons)
+     Dblclick outside phone shell → reset flat front
+     Left/right yaw clamped ±80°; pitch unchanged (±68) */
   function onHoverMove(e) {
-    if (isRealPhone() || prefersReduced() || dragging || screensaverOn) return;
-    if (isOverScreen(e.target) || isPointOnPhone(e.clientX, e.clientY)) {
+    if (isRealPhone() || prefersReduced() || dragging) return;
+    const target = e.target;
+    if (isOverScreen(target) || !rig.contains(target)) {
       hoverTiltX = 0;
       hoverTiltY = 0;
       applyTransform();
@@ -680,8 +404,10 @@
     const rect = rig.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    const nx = Math.max(-1, Math.min(1, (e.clientX - cx) / (rect.width / 2 || 1)));
-    const ny = Math.max(-1, Math.min(1, (e.clientY - cy) / (rect.height / 2 || 1)));
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    const nx = Math.max(-1, Math.min(1, (clientX - cx) / (rect.width / 2)));
+    const ny = Math.max(-1, Math.min(1, (clientY - cy) / (rect.height / 2)));
     hoverTiltY = nx * 4;
     hoverTiltX = -ny * 3;
     unit.style.setProperty("--shell-gloss-x", (50 + nx * 28).toFixed(1) + "%");
@@ -697,224 +423,111 @@
   }
 
   function onPointerDown(e) {
-    if (isRealPhone() || prefersReduced() || screensaverOn) return;
+    if (isRealPhone() || prefersReduced()) return;
     if (e.button != null && e.button !== 0) return;
-    /* v10g: LMB drag ANYWHERE outside phone glass = free rotate.
-       Inside glass = UI clicks only (do not start orbit / hide overlay). */
-    if (isChromeControl(e.target)) return;
-    if (isInsidePhoneGlass(e.target, e.clientX, e.clientY)) return;
+    if (!canStartOrbit(e.target)) return;
     dragging = true;
     dragMoved = false;
-    captureArmed = false;
     activePointerId = e.pointerId;
     lastX = e.clientX;
     lastY = e.clientY;
     hoverTiltX = 0;
     hoverTiltY = 0;
-    stopShowcaseOrbit();
     stage.classList.remove("is-floating");
     stage.classList.add("is-dragging");
     unit.classList.add("is-dragging");
-    /* Defer setDragging until real move — keeps front overlay clickable on press */
+    document.body.classList.add("is-shell-orbiting");
+    try {
+      // Capture on the start target so empty-page drags keep receiving moves
+      if (e.currentTarget && e.currentTarget.setPointerCapture) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
+    } catch (_) {}
   }
 
   function onPointerMove(e) {
-    if (screensaverOn) {
-      onShakeSample(e);
-      return;
-    }
-    if (!dragging) {
-      onHoverMove(e);
+    if (!dragging || (activePointerId != null && e.pointerId !== activePointerId)) {
+      if (!dragging) onHoverMove(e);
       return;
     }
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
-    if (!dragMoved && Math.abs(dx) + Math.abs(dy) > 4) {
-      dragMoved = true;
-      if (window.LT_MESH && window.LT_MESH.setDragging) window.LT_MESH.setDragging(true);
-      if (!captureArmed && activePointerId != null) {
-        captureArmed = true;
-        try {
-          stage.setPointerCapture(activePointerId);
-        } catch (_) {
-          try {
-            document.body.setPointerCapture(activePointerId);
-          } catch (_) {
-            try {
-              rig.setPointerCapture(activePointerId);
-            } catch (_) {}
-          }
-        }
-      }
-    }
-    if (!dragMoved) return;
+    if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true;
     lastX = e.clientX;
     lastY = e.clientY;
-    rotY = rotY + dx * 0.48;
-    rotX = Math.max(-28, Math.min(28, rotX - dy * 0.36));
-    /* Keep Y unbounded for free orbit past 180 so back is seen from mirrored angle */
-    if (rotY > 360) rotY -= 360;
-    if (rotY < -360) rotY += 360;
+    rotY += dx * 0.45;
+    rotX -= dy * 0.35;
+    clampOrbit();
     applyTransform();
   }
 
   function onPointerUp(e) {
     if (!dragging) return;
+    if (activePointerId != null && e.pointerId !== activePointerId) return;
     dragging = false;
-    captureArmed = false;
+    activePointerId = null;
     stage.classList.remove("is-dragging");
     unit.classList.remove("is-dragging");
-    if (window.LT_MESH && window.LT_MESH.setDragging) window.LT_MESH.setDragging(false);
-    if (!isRealPhone() && !prefersReduced() && !screensaverOn) stage.classList.add("is-floating");
+    document.body.classList.remove("is-shell-orbiting");
+    if (!isRealPhone() && !prefersReduced()) stage.classList.add("is-floating");
     try {
-      if (activePointerId != null) {
-        stage.releasePointerCapture(activePointerId);
-        rig.releasePointerCapture(activePointerId);
+      if (e.currentTarget && e.currentTarget.releasePointerCapture) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
       }
     } catch (_) {}
-    activePointerId = null;
-    bumpIdle();
   }
 
-  function onOuterDblClick(e) {
-    if (isRealPhone() || screensaverOn) return;
-    if (isChromeControl(e.target)) return;
-    /* v10g: double-click ANYWHERE outside phone glass = reset flat front */
-    if (isInsidePhoneGlass(e.target, e.clientX, e.clientY)) return;
+  function resetOrbit() {
+    rotX = 0;
+    rotY = 0;
+    hoverTiltX = 0;
+    hoverTiltY = 0;
+    clampOrbit();
+    applyTransform();
+  }
+
+  function onDblClickOutside(e) {
+    if (isRealPhone() || prefersReduced()) return;
+    // Double-click empty area outside the phone shell → flat front
+    if (isOverPhoneShell(e.target)) return;
+    if (isInteractiveChrome(e.target)) return;
     e.preventDefault();
-    e.stopPropagation();
     resetOrbit();
   }
 
-  dampLoop();
-
-  /* Window-level: drag/dblclick anywhere outside glass; stage alone missed page chrome gaps */
-  window.addEventListener("pointerdown", onPointerDown, true);
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
-  window.addEventListener("pointercancel", onPointerUp);
+  // Page-level orbit: empty background + bezel. Screen UI keeps its own clicks.
+  document.addEventListener("pointerdown", onPointerDown);
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
+  document.addEventListener("pointercancel", onPointerUp);
   rig.addEventListener("pointerleave", onHoverLeave);
-  window.addEventListener("dblclick", onOuterDblClick, true);
+  document.addEventListener("dblclick", onDblClickOutside);
 
+  // Hard guarantee: interactive screen keeps auto hit-testing.
+  // Do NOT stopPropagation on capture — that would kill button clicks.
   if (screenEl) {
     screenEl.style.pointerEvents = "auto";
-    screenEl.addEventListener(
-      "pointerdown",
-      (e) => {
-        e.stopPropagation();
-        if (screensaverOn) {
-          /* let ss handler decide */
-          return;
-        }
-        bumpIdle();
-      },
-      true
-    );
   }
 
-  if (ssEl) {
-    ssEl.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (e.target.closest && e.target.closest(".ss-pin")) return;
-      requestUnlock();
-    });
-  }
-  const ssLogo = ssEl && ssEl.querySelector(".ss-logo, .ss-brand, .ss-wordmark");
-  if (ssEl) {
-    ssEl.querySelectorAll(".ss-logo, .ss-brand, .ss-wordmark").forEach((el) => {
-      el.style.cursor = "pointer";
-      el.addEventListener("click", (e) => {
-        e.stopPropagation();
-        gentleUnlock();
-      });
-    });
-  }
+  // Reset button
+  const resetBtn = document.getElementById("shell-reset");
+  if (resetBtn) resetBtn.addEventListener("click", resetOrbit);
 
-  if (ssPinUnlock) {
-    ssPinUnlock.addEventListener("click", (e) => {
-      e.stopPropagation();
-      tryUnlockWithPin();
+  // Side peek helper (yaw capped at ±80 — no full flip past edge)
+  const flipBtn = document.getElementById("shell-flip");
+  if (flipBtn) {
+    flipBtn.addEventListener("click", () => {
+      if (Math.abs(rotY) > 40) rotY = 0;
+      else rotY = rotY < 0 ? -MAX_YAW : MAX_YAW;
+      rotX = 0;
+      clampOrbit();
+      applyTransform();
     });
   }
-  if (ssPinInput) {
-    ssPinInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        tryUnlockWithPin();
-      }
-    });
-  }
-
-  /* Lock settings panel */
-  const lockBtn = document.getElementById("shell-lock-btn");
-  const lockPanel = document.getElementById("shell-lock-panel");
-  const lockEnabledEl = document.getElementById("ss-lock-enabled");
-  const lockSetEl = document.getElementById("ss-lock-set");
-  const lockSave = document.getElementById("ss-lock-save");
-  const lockClear = document.getElementById("ss-lock-clear");
-  const lockClose = document.getElementById("ss-lock-close");
-
-  function syncLockUi() {
-    if (lockEnabledEl) {
-      try {
-        lockEnabledEl.checked = localStorage.getItem(STORAGE_SS_LOCK) === "1";
-      } catch (_) {}
-    }
-  }
-
-  if (lockBtn && lockPanel) {
-    lockBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      syncLockUi();
-      lockPanel.hidden = !lockPanel.hidden;
-    });
-  }
-  if (lockClose && lockPanel) {
-    lockClose.addEventListener("click", () => {
-      lockPanel.hidden = true;
-    });
-  }
-  if (lockSave) {
-    lockSave.addEventListener("click", () => {
-      const pin = (lockSetEl && lockSetEl.value) || "";
-      const en = !!(lockEnabledEl && lockEnabledEl.checked);
-      try {
-        if (en && pin && /^\d{4,6}$/.test(pin)) {
-          localStorage.setItem(STORAGE_SS_PIN, pin);
-          localStorage.setItem(STORAGE_SS_LOCK, "1");
-        } else if (en && getPin()) {
-          localStorage.setItem(STORAGE_SS_LOCK, "1");
-        } else {
-          localStorage.setItem(STORAGE_SS_LOCK, "0");
-        }
-      } catch (_) {}
-      if (lockPanel) lockPanel.hidden = true;
-      bumpIdle();
-    });
-  }
-  if (lockClear) {
-    lockClear.addEventListener("click", () => {
-      try {
-        localStorage.removeItem(STORAGE_SS_PIN);
-        localStorage.setItem(STORAGE_SS_LOCK, "0");
-      } catch (_) {}
-      if (lockEnabledEl) lockEnabledEl.checked = false;
-      if (lockSetEl) lockSetEl.value = "";
-    });
-  }
-
-  ["keydown", "wheel", "touchstart"].forEach((ev) => {
-    document.addEventListener(
-      ev,
-      () => {
-        if (!screensaverOn) bumpIdle();
-      },
-      { passive: true }
-    );
-  });
 
   buildModels();
   buildSwatches();
+  wireCompactChrome();
 
   const bootParams = new URLSearchParams(location.search);
   const qModel = bootParams.get("model");
@@ -940,80 +553,78 @@
         : "obsidian";
 
   applyModel(bootModel, false);
+  /* Boot without linking so palace tone (loaded first) stays source of truth */
   applyFinish(bootFinish, false, false);
+  const bootTone = document.documentElement.getAttribute("data-finish");
+  if (bootTone && TONE_TO_SHELL[bootTone]) {
+    applyFinish(TONE_TO_SHELL[bootTone], false, false);
+    if (window.LT_PALACE && window.LT_PALACE.TONE_WASH && window.LT_PALACE.TONE_WASH[bootTone]) {
+      applyPageWash(window.LT_PALACE.TONE_WASH[bootTone]);
+    }
+  }
   applyMode();
-  bumpIdle();
 
   const mqNarrow = window.matchMedia("(max-width: 540px)");
   const onChange = () => applyMode();
   if (mqNarrow.addEventListener) mqNarrow.addEventListener("change", onChange);
   else mqNarrow.addListener(onChange);
   window.addEventListener("orientationchange", () => setTimeout(applyMode, 120));
-  window.addEventListener("resize", () => fitScale());
+  window.addEventListener("resize", () => {
+    fitScale();
+  });
 
-    /* Sync real GLTF chassis */
-  function syncMeshChassis() {
-    if (!window.LT_MESH) return;
-    const mid = unit.dataset.model || stage.dataset.model || "island";
-    const fid = unit.dataset.shell || stage.dataset.shell || "obsidian";
-    Promise.resolve(window.LT_MESH.setModelUiId(mid)).then(() => {
-      window.LT_MESH.setFinish(fid);
-      applyTransform();
-    });
-  }
-  syncMeshChassis();
-
-window.LT_SHELL = {
+  window.LT_SHELL = {
     models: MODELS,
     finishes: FINISHES,
     shells: FINISHES,
+    shellToTone: SHELL_TO_TONE,
+    toneToShell: TONE_TO_SHELL,
     applyModel,
     applyFinish,
     applyShell: applyFinish,
     applyPageWash,
     isRealPhone,
     resetOrbit,
-    flipToBack,
-    toggleFlip,
-    isFlipped: function () {
-      return facingBack();
+    closeShellDrawers,
+    updateCompactIcons,
+    getOrbit() {
+      return { rotX, rotY, maxYaw: MAX_YAW, maxPitch: MAX_PITCH };
     },
-    showScreensaver,
-    hideScreensaver,
-    bumpIdle,
-    getRotation: function () {
-      return { x: rotX, y: rotY };
+    setOrbit(x, y) {
+      rotX = Number(x) || 0;
+      rotY = Number(y) || 0;
+      clampOrbit();
+      applyTransform();
+      return this.getOrbit();
     },
-    getOrbit: function () {
-      return { x: rotX, y: rotY, viewX: viewRotX, viewY: viewRotY };
-    },
-    setOrbit: function (x, y, snap) {
-      rotX = x || 0;
-      rotY = y || 0;
-      if (Math.abs(rotX) < 8 && Math.abs(rotY) < 8 && window.LT_MESH?.revealFront) {
-        window.LT_MESH.revealFront();
-      }
-      hoverTiltX = 0;
-      hoverTiltY = 0;
-      targetRotX = rotX;
-      targetRotY = rotY;
-      if (snap) {
-        viewRotX = rotX;
-        viewRotY = rotY;
-        syncViewToMesh();
-      } else {
-        applyTransform();
-      }
+    enableSyncTiltExperimental() {
+      console.info("[LT shell] Sync tilt deferred — drag empty space to orbit on desktop.");
+      return false;
     },
   };
 
   document.addEventListener("lt-i18n-applied", () => {
-    updateName();
+    const label = document.querySelector("[data-i18n='shellLabel']");
+    if (label && !label.textContent) label.textContent = tShell("shellLabel", "Device shell");
+    const hint = document.querySelector("[data-i18n='shellHint']");
+    if (hint) hint.textContent = tShell("shellHint", "Drag empty space to rotate (±80°) · double-click outside phone to reset · tap screen to practice");
   });
 
-  /* Tone finish also washes the page (lighter tint) */
+  /* In-phone tone → shell metal + page wash (no re-link loop) */
   document.addEventListener("lt-tone-changed", (ev) => {
-    const wash = ev && ev.detail && ev.detail.wash;
-    if (wash) applyPageWash(wash);
+    const detail = (ev && ev.detail) || {};
+    if (detail.wash) applyPageWash(detail.wash);
+    if (linkingFromShell) return;
+    const toneId = detail.id;
+    if (!toneId) return;
+    const shellId = TONE_TO_SHELL[toneId];
+    if (!shellId || unit.dataset.shell === shellId) return;
+    linkingFromTone = true;
+    try {
+      applyFinish(shellId, true, false);
+      if (detail.wash) applyPageWash(detail.wash);
+    } finally {
+      linkingFromTone = false;
+    }
   });
 })();
