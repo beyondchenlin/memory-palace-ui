@@ -29,6 +29,9 @@ modeVersion 并废弃已经创建的候选渲染器，最终无 LT_MESH，测试
 不受旧 assets/lighting/ 排除规则影响。旧灯光 PNG 仅保留本地，加入忽略规则。
 静态发布显式跳过 npm 安装和构建，复用已核验的运行文件；不上传测试脚本、
 截图、node_modules、环境变量文件或旧模型目录。无需重新导出模型。
+发布 dry-run 核对了全部输入（约 3.1 MB）；同时移除历史上误跟踪的
+.vercel/anonymous.json 临时部署元数据，不将临时声明信息带入新分支。
+保留本地当前项目的 .vercel/project.json，仍由忽略规则排除。
 
 ## 验证与证据
 

@@ -7,7 +7,7 @@ qa-*.mjs
 qa-*.cjs
 qa-*.py
 qa-*.jsx
-qa-generated/
+qa-generated
 .env*
 index.html.bak*
 assets/models/iphone-15-pro-max.glb
