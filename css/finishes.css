@@ -329,13 +329,6 @@ html[data-finish="natural-titanium"] {
   --stage-b: #2a2420;
 }
 
-html {
-  background:
-    radial-gradient(1200px 600px at 20% -10%, var(--stage-a, #1a3a4a) 0%, transparent 55%),
-    radial-gradient(900px 500px at 90% 20%, var(--stage-b, #2a1f4a) 0%, transparent 50%),
-    var(--bg-stage);
-}
-
 /* Chrome borders that were hard-coded green — follow finish */
 .pack-card,
 .meter,

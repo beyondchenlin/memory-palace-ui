@@ -7,10 +7,10 @@
   const STORAGE_FINISH = "lt-palace-shell";
 
   const MODELS = [
-    { id: "island", name: "Island Pro", topChrome: "island" },
-    { id: "notch", name: "Classic Notch", topChrome: "notch" },
-    { id: "hole", name: "Android Hole", topChrome: "hole" },
-    { id: "clean", name: "Clean", topChrome: "none" },
+    { id: "island", name: "Island Pro", topChrome: "island", detail: "shellIsland" },
+    { id: "notch", name: "Classic Notch", topChrome: "notch", detail: "shellNotch" },
+    { id: "hole", name: "Android Hole", topChrome: "hole", detail: "shellHole" },
+    { id: "clean", name: "Clean", topChrome: "none", detail: "shellClean" },
   ];
 
   const FINISHES = [
@@ -58,8 +58,9 @@
   const swatches = document.getElementById("shell-swatches");
   const modelEl = document.getElementById("shell-models");
   const nameEl = document.getElementById("shell-name");
+  const pickerDock = document.getElementById("shell-picker-dock");
   const screenEl = document.querySelector(".device-screen");
-  if (!stage || !unit || !rig) return;
+  if (!stage || !unit || !rig || !pickerDock) return;
 
   let linkingFromShell = false;
   let linkingFromTone = false;
@@ -119,7 +120,7 @@
     return !!target.closest(
       "button, a, input, select, textarea, label, option," +
         "[role='button'], [role='option'], [role='tab'], [role='listbox'], [role='dialog']," +
-        ".shell-bar, .shell-compact, .shell-dd, .shell-dd-panel, .stage-bar, .lang-switch, .screen-tabs," +
+        ".shell-bar, .shell-compact, .shell-picker-dock, .shell-dd, .shell-dd-panel, .stage-bar, .lang-switch, .screen-tabs," +
         "#stage-pet, .stage-pet, .finish-popover, .finish-wrap"
     );
   }
@@ -201,7 +202,8 @@
       modelEl.querySelectorAll(".shell-model").forEach((b) => {
         const on = b.dataset.model === model.id;
         b.classList.toggle("is-on", on);
-        b.setAttribute("aria-selected", on ? "true" : "false");
+        b.setAttribute("aria-checked", String(on));
+        b.tabIndex = on ? 0 : -1;
       });
     }
     updateName();
@@ -231,8 +233,10 @@
     }
     if (swatches) {
       swatches.querySelectorAll(".shell-swatch").forEach((b) => {
-        b.classList.toggle("is-on", b.dataset.shell === finish.id);
-        b.setAttribute("aria-selected", b.dataset.shell === finish.id ? "true" : "false");
+        const on = b.dataset.shell === finish.id;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-checked", String(on));
+        b.tabIndex = on ? 0 : -1;
       });
     }
     updateName();
@@ -267,51 +271,130 @@
     const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
     const mini = document.getElementById("shell-mini");
     if (mini) {
-      mini.dataset.chrome = model.topChrome || "none";
+      if (mini.dataset.model !== model.id) {
+        mini.innerHTML = phoneSvg(model, 19, 30);
+        mini.dataset.model = model.id;
+      }
       mini.style.setProperty("--shell-mini-fill", finish.swatch);
-      const chrome = mini.querySelector(".shell-mini-chrome");
-      if (chrome) chrome.dataset.chrome = model.topChrome || "none";
     }
     document.documentElement.style.setProperty("--shell-mini-fill", finish.swatch);
     const dot = document.getElementById("shell-color-dot");
     if (dot) {
-      dot.style.background = "linear-gradient(145deg, " + finish.swatch + ", #000)";
+      dot.style.setProperty("--swatch", finish.swatch);
     }
     const colorName = document.getElementById("shell-color-name");
     if (colorName) colorName.textContent = finish.name;
     const modelBtn = document.getElementById("shell-model-btn");
-    if (modelBtn) modelBtn.title = model.name + " · " + finish.name;
+    if (modelBtn) {
+      modelBtn.title = model.name + " · " + finish.name;
+      modelBtn.setAttribute("aria-label", tShell("shellLabel", "Phone frame") + ": " + model.name);
+    }
     const colorBtn = document.getElementById("shell-color-btn");
-    if (colorBtn) colorBtn.title = finish.name;
+    if (colorBtn) {
+      colorBtn.title = finish.name;
+      colorBtn.setAttribute("aria-label", tShell("shellColorsLabel", "Shell color") + ": " + finish.name);
+    }
   }
 
   function updateName() {
     const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
     const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
-    if (nameEl) nameEl.textContent = model.name + " · " + finish.name;
+    if (nameEl) nameEl.textContent = model.name;
     updateCompactIcons();
   }
 
-  function closeShellDrawers() {
-    document.querySelectorAll(".shell-dd-panel").forEach((p) => {
-      p.hidden = true;
-      p.classList.remove("is-open");
+  const pickerAnimations = new WeakMap();
+  let dockAnimation = null;
+  let dockTarget = 0;
+
+  function animatePickerSpace(height) {
+    if (height === dockTarget) return;
+    const current = pickerDock.getBoundingClientRect().height;
+    dockTarget = height;
+    dockAnimation?.cancel();
+    pickerDock.style.height = height + "px";
+    pickerDock.style.overflow = "hidden";
+    if (prefersReduced()) {
+      pickerDock.style.overflow = height ? "visible" : "hidden";
+      return;
+    }
+    const animation = pickerDock.animate([{ height: current + "px" }, { height: height + "px" }], {
+      duration: height ? 340 : 280,
+      easing: "cubic-bezier(.22,1,.36,1)",
     });
-    document.querySelectorAll(".shell-icon-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+    dockAnimation = animation;
+    animation.onfinish = () => {
+      if (dockAnimation === animation) pickerDock.style.overflow = dockTarget ? "visible" : "hidden";
+    };
   }
 
-  function toggleShellDrawer(kind) {
+  function closeShellDrawers(restoreFocus, keepSpace) {
+    let closed = false;
+    document.querySelectorAll(".shell-dd-panel").forEach((panel) => {
+      if (!panel.classList.contains("is-open")) return;
+      closed = true;
+      const trigger = document.querySelector('[aria-controls="' + panel.id + '"]');
+      if (restoreFocus && trigger) trigger.focus({ preventScroll: true });
+      const currentStyle = getComputedStyle(panel);
+      const opacity = currentStyle.opacity;
+      const transform = currentStyle.transform;
+      panel.inert = true;
+      panel.classList.remove("is-open");
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+      pickerAnimations.get(panel)?.cancel();
+      if (prefersReduced()) {
+        panel.hidden = true;
+        return;
+      }
+      const animation = panel.animate([
+        { opacity, transform },
+        { opacity: 0, transform: "translateY(-4px) scale(.98)" },
+      ], { duration: 130, easing: "cubic-bezier(.4,0,1,1)" });
+      pickerAnimations.set(panel, animation);
+      animation.onfinish = () => { if (!panel.classList.contains("is-open")) panel.hidden = true; };
+    });
+    if (closed && !keepSpace) animatePickerSpace(0);
+  }
+
+  function positionShellDrawer(panel, trigger) {
+    const anchor = pickerDock.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    panel.style.setProperty("--picker-pointer", Math.max(22, Math.min(anchor.width - 22, triggerRect.left + triggerRect.width / 2 - anchor.left)) + "px");
+    animatePickerSpace(panel.offsetHeight + 18);
+  }
+
+  function positionOpenDrawers() {
+    document.querySelectorAll(".shell-dd-panel.is-open").forEach((panel) => {
+      positionShellDrawer(panel, document.querySelector('[aria-controls="' + panel.id + '"]'));
+    });
+  }
+
+  function toggleShellDrawer(kind, keyboard) {
     const panelId = kind === "model" ? "shell-model-panel" : "shell-color-panel";
     const btnId = kind === "model" ? "shell-model-btn" : "shell-color-btn";
     const panel = document.getElementById(panelId);
     const btn = document.getElementById(btnId);
     if (!panel || !btn) return;
-    const willOpen = panel.hidden;
-    closeShellDrawers();
+    const willOpen = !panel.classList.contains("is-open");
+    closeShellDrawers(false, willOpen);
     if (willOpen) {
+      pickerAnimations.get(panel)?.cancel();
       panel.hidden = false;
+      panel.inert = false;
       panel.classList.add("is-open");
       btn.setAttribute("aria-expanded", "true");
+      positionShellDrawer(panel, btn);
+      if (!prefersReduced()) {
+        pickerAnimations.set(panel, panel.animate([
+          { opacity: 0, transform: "translateY(-6px) scale(.975)" },
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+        ], { duration: 250, delay: 45, fill: "backwards", easing: "cubic-bezier(.16,1,.3,1)" }));
+        panel.querySelectorAll('[role="radio"]').forEach((option, i) => {
+          option.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
+            { duration: 230, delay: 65 + i * 12, fill: "backwards", easing: "cubic-bezier(.16,1,.3,1)" });
+        });
+      }
+      if (keyboard) panel.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
     }
   }
 
@@ -322,24 +405,84 @@
       modelBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggleShellDrawer("model");
+        toggleShellDrawer("model", e.detail === 0);
       });
     }
     if (colorBtn) {
       colorBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggleShellDrawer("color");
+        toggleShellDrawer("color", e.detail === 0);
       });
     }
     document.addEventListener("click", (e) => {
       const t = e.target;
-      if (t && t.closest && t.closest(".shell-compact")) return;
+      if (isPickerTarget(t)) return;
       closeShellDrawers();
     });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeShellDrawers();
+      if (e.key === "Escape" && document.querySelector(".shell-dd-panel.is-open")) {
+        e.preventDefault();
+        closeShellDrawers(true);
+      }
     });
+    document.querySelectorAll("[data-shell-close]").forEach((button) => {
+      button.addEventListener("click", () => closeShellDrawers(true));
+    });
+    [document.getElementById("shell-compact"), pickerDock].forEach((element) => {
+      element.addEventListener("focusout", (e) => {
+        if (!isPickerTarget(e.relatedTarget)) closeShellDrawers();
+      });
+    });
+    document.querySelectorAll(".shell-dd-panel [role='radiogroup']").forEach((group) => {
+      group.addEventListener("keydown", (e) => {
+        const option = e.target.closest("[role='radio']");
+        if (!option) return;
+        const items = [...group.querySelectorAll("[role='radio']")];
+        const offsets = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 1, ArrowUp: -1 };
+        let index = items.indexOf(option);
+        if (e.key === "Home") index = 0;
+        else if (e.key === "End") index = items.length - 1;
+        else if (e.key in offsets) index = (index + offsets[e.key] + items.length) % items.length;
+        else return;
+        e.preventDefault();
+        items[index].focus({ preventScroll: true });
+        items[index].click();
+        const itemRect = items[index].getBoundingClientRect();
+        const groupRect = group.getBoundingClientRect();
+        if (itemRect.left < groupRect.left || itemRect.right > groupRect.right) {
+          group.scrollTo({ left: group.scrollLeft + itemRect.left - groupRect.left - (groupRect.width - itemRect.width) / 2, behavior: prefersReduced() ? "instant" : "smooth" });
+        }
+      });
+    });
+    // Keep in-flow space in sync with fonts, locale changes and viewport width.
+    const toolbarObserver = new ResizeObserver(positionOpenDrawers);
+    toolbarObserver.observe(document.querySelector(".stage-bar"));
+    document.querySelectorAll(".shell-dd-panel").forEach((panel) => toolbarObserver.observe(panel));
+  }
+
+  function isPickerTarget(target) {
+    return target && target.closest && target.closest(".shell-compact, .shell-picker-dock");
+  }
+
+  const checkSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8 3 3 6-6"/></svg>';
+
+  function phoneSvg(model, width, height) {
+    const chrome = {
+      island: '<rect x="21" y="12" width="18" height="5" rx="2.5"/><circle class="picker-phone-lens" cx="35" cy="14.5" r="1.2"/>',
+      notch: '<path d="M16 8h28v4a5 5 0 0 1-5 5H21a5 5 0 0 1-5-5z"/><rect class="picker-phone-speaker" x="25" y="10" width="10" height="1.5" rx=".75"/>',
+      hole: '<circle cx="30" cy="14" r="3"/><circle class="picker-phone-lens" cx="30" cy="14" r="1.5"/>',
+      none: '',
+    };
+    const radius = model.id === "hole" ? 7 : 10;
+    return '<svg class="picker-phone" viewBox="0 0 60 110" width="' + width + '" height="' + height + '" aria-hidden="true" focusable="false">' +
+      '<rect class="picker-phone-button" x="4" y="23" width="3" height="12" rx="1"/><rect class="picker-phone-button" x="53" y="32" width="3" height="17" rx="1"/>' +
+      '<rect class="picker-phone-body" x="6" y="4" width="48" height="102" rx="' + radius + '"/>' +
+      '<rect class="picker-phone-screen" x="9" y="7" width="42" height="96" rx="' + (radius - 2) + '"/>' +
+      '<path class="picker-phone-wallpaper" d="M9 57C25 26 42 38 51 23v72a8 8 0 0 1-8 8H17a8 8 0 0 1-8-8Z"/>' +
+      '<path class="picker-phone-reflection" d="M9 37C26 56 39 31 51 47v20C36 51 24 80 9 60Z"/>' +
+      '<g class="picker-phone-chrome">' + chrome[model.topChrome] + '</g>' +
+      '<rect class="picker-phone-home" x="22" y="97" width="16" height="2" rx="1"/></svg>';
   }
 
   function buildModels() {
@@ -351,14 +494,12 @@
       btn.className = "shell-model";
       btn.dataset.model = m.id;
       btn.dataset.topChrome = m.topChrome;
-      btn.setAttribute("role", "option");
+      btn.setAttribute("role", "radio");
       btn.setAttribute("aria-label", m.name);
-      btn.textContent = m.name;
-      btn.title = m.name + " (" + m.topChrome + ")";
+      btn.innerHTML = phoneSvg(m, 32, 58) + '<span class="shell-model-copy"><strong>' + m.name + '</strong><span data-i18n="' + m.detail + '">' + tShell(m.detail, m.name) + '</span></span><span class="shell-model-check">' + checkSvg + '</span>';
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         applyModel(m.id);
-        closeShellDrawers();
       });
       modelEl.appendChild(btn);
     });
@@ -372,14 +513,16 @@
       btn.type = "button";
       btn.className = "shell-swatch";
       btn.dataset.shell = s.id;
-      btn.style.background = `linear-gradient(145deg, ${s.swatch}, #000)`;
+      btn.style.setProperty("--swatch", s.swatch);
+      const rgb = s.swatch.match(/\w\w/g).map((channel) => parseInt(channel, 16));
+      btn.style.setProperty("--swatch-ink", rgb[0] * .299 + rgb[1] * .587 + rgb[2] * .114 > 150 ? "#18202b" : "#fff");
+      btn.innerHTML = '<span class="shell-swatch-orb" aria-hidden="true"><span class="shell-swatch-check">' + checkSvg + '</span></span><span class="shell-swatch-name">' + s.name + '</span>';
       btn.title = s.name;
-      btn.setAttribute("role", "option");
+      btn.setAttribute("role", "radio");
       btn.setAttribute("aria-label", s.name);
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         applyFinish(s.id);
-        closeShellDrawers();
       });
       swatches.appendChild(btn);
     });
@@ -569,6 +712,8 @@
   window.addEventListener("orientationchange", () => setTimeout(applyMode, 120));
   window.addEventListener("resize", () => {
     fitScale();
+    if (isRealPhone()) closeShellDrawers();
+    else positionOpenDrawers();
   });
 
   window.LT_SHELL = {
@@ -606,6 +751,7 @@
     if (label && !label.textContent) label.textContent = tShell("shellLabel", "Device shell");
     const hint = document.querySelector("[data-i18n='shellHint']");
     if (hint) hint.textContent = tShell("shellHint", "Drag empty space to rotate (±80°) · double-click outside phone to reset · tap screen to practice");
+    updateCompactIcons();
   });
 
   /* In-phone tone → shell metal + page wash (no re-link loop) */
