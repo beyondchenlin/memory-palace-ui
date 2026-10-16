@@ -1,14 +1,12 @@
 # Live 3D presentation · 2026-10-16
 
-The app, course content, popovers, colors, language packs, pet and responsive styles
-come from the user's selected SVG deployment:
-https://lingotrace-palace-72dfq8k7n-beyondchenlins-projects.vercel.app/
-
-Reference deployment: `dpl_79aiNkoVux1E1TqNdjq25efUbtoY`, project
-`lingotrace-palace-svg`. This is the compact overlay-picker version, before the
-subsequent in-flow picker-strip changes. Those later edits are deliberately not
-included. The deployment-injected Vercel feedback script is not source code and
-is omitted.
+The app, course content, appearance pickers, colors, language packs, pet and
+responsive styles follow the current SVG work in commit
+`a55b3df80c60fa9c73e317968e80c50928ce9c38` on `fix/svg-full-viewport-background`.
+The earlier deployment URL selected an old overlay-picker version. The user's
+correction requires the current in-flow picker strips: full-width rows, preview
+icons, persistent selection, animated space for the phone and notes, keyboard
+controls, outside dismissal and Escape focus return.
 
 ## Presentation boundary
 
@@ -39,12 +37,18 @@ required. Run `node qa-live-3d.cjs` with `PLAYWRIGHT_MODULE` pointing to Playwri
 and optionally `CHROME_PATH` pointing to Chrome. `QA_URL` selects the deployment
 (default localhost:8877), and `QA_OUTPUT` selects the evidence directory.
 
-The browser test covers live-screen uniqueness, overlay picker position, four
+The browser test covers live-screen uniqueness, animated picker space, four
 models, shell/tone changes, actual clicks at an angle, lesson → interpret → check
 → settle, Palace, locale, pointer drag, reset, clamp, idle rendering, tablet/phone
 boundaries, resize round trip, scroll projection, cold mobile network requests,
 missing WebGL and context loss. Screenshot and JSON evidence is retained in the
 chosen directory (ignored by Git by default).
+
+`qa-3d-pickers.cjs` specifically checks parity with the current SVG pickers:
+full-width single-row panels, screen/body tracking throughout expansion,
+phone/notes movement down and back, selection without dismissal, model previews,
+color linking, keyboard navigation, focus return, reduced motion and narrow
+viewport horizontal scrolling. It accepts `PICKER_QA_URL` and `PICKER_QA_OUTPUT`.
 
 ## Deployment and rollback
 

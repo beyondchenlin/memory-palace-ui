@@ -244,7 +244,12 @@ export function createDeviceMesh({ mount, screenEl, unit, rig }) {
     if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(render);
   }
   function visibility() { if (!document.hidden) { lastTime = 0; invalidate(); } }
-  const observer = new ResizeObserver(invalidate);
+  const observer = new ResizeObserver(() => {
+    if (disposed || document.hidden) return;
+    // Keep the moving body and its live screen together before browser paint.
+    layout();
+    renderer.render(scene, camera);
+  });
   observer.observe(rig);
   observer.observe(unit);
   observer.observe(document.querySelector('.stage'));

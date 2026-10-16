@@ -27,26 +27,32 @@ const base = process.env.QA_URL || 'http://127.0.0.1:8877/';
     const originalContent = await page.locator('#phone').innerHTML();
     const front = await page.locator('.device-screen').boundingBox();
     await page.locator('#shell-model-btn').click();
+    await page.waitForTimeout(400);
     const open = await page.locator('.device-screen').boundingBox();
-    assert(Math.abs(open.y - front.y) <= 1.5, 'Reference overlay drawer must not move the phone: ' + JSON.stringify({front, open, state: await page.evaluate(() => window.LT_MESH.getState())}));
+    assert(open.y - front.y > 100, 'The current SVG picker makes room above the phone');
     assert.equal(await page.locator('#shell-models .shell-model').count(), 4);
     await page.locator('#shell-model-btn').click();
-    results.push('One live screen; no duplicate status bar, screenshot clone, model or texture download; reference overlay drawers');
+    await page.waitForTimeout(350);
+    results.push('One live screen; no duplicate status bar, screenshot clone, model or texture download; animated SVG appearance strips');
 
+    await page.locator('#shell-model-btn').click();
     for (const model of ['island', 'notch', 'hole', 'clean']) {
-      await page.locator('#shell-model-btn').click();
       await page.locator('.shell-model[data-model="' + model + '"]').click();
       await page.waitForFunction(m => window.LT_MESH.getState().model === m, model);
       assert.equal(await page.locator('.device-screen').getAttribute('data-model'), model);
       assert.equal(await page.locator('#phone').innerHTML(), originalContent);
     }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(350);
     assert.equal(await page.locator('.shell-swatch').count(), 10);
+    await page.locator('#shell-color-btn').click();
     for (const finish of ['cobalt', 'amethyst', 'pearl', 'sterling']) {
-      await page.locator('#shell-color-btn').click();
       await page.locator('.shell-swatch[data-shell="' + finish + '"]').click();
       await page.waitForFunction(id => window.LT_MESH.getState().finish === id, finish);
       assert.equal(await page.locator('#device-unit').getAttribute('data-shell'), finish);
     }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(350);
     results.push('All four actual 3D silhouettes and ten reference color choices; shell, tone, background and pet stay linked');
     await page.evaluate(() => window.LT_SHELL.setOrbit(-8, 32));
     await page.waitForTimeout(700);
