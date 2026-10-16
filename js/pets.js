@@ -171,7 +171,13 @@
         badge.setAttribute("aria-hidden", "true");
         btn.appendChild(badge);
       }
-      badge.textContent = pet.emoji;
+      let glyph = badge.querySelector(".mascot-pet-glyph");
+      if (!glyph) {
+        glyph = document.createElement("span");
+        glyph.className = "mascot-pet-glyph";
+        badge.replaceChildren(glyph);
+      }
+      glyph.textContent = pet.emoji;
       btn.title = t(pet.nameKey, pet.id) + " · " + t("mascotAria", "Open today's tone");
     });
   }
