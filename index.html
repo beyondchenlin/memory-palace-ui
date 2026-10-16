@@ -4,15 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>LingoTrace · Memory Palace</title>
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/palace.css" />
-  <link rel="stylesheet" href="css/finishes.css" />
-  <link rel="stylesheet" href="css/device-shell.css" />
-  <link rel="stylesheet" href="css/pets.css" />
-  <link rel="stylesheet" href="css/device-mesh.css" />
-  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js"}}</script>
+  <link id="optional-webfonts" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" media="print" />
+  <link rel="stylesheet" href="css/palace.css?v=20261016-toolbar1" />
+  <link rel="stylesheet" href="css/finishes.css?v=20261016-appearance1" />
+  <link rel="stylesheet" href="css/device-shell.css?v=20261016-toolbar1" />
+  <link rel="stylesheet" href="css/pets.css?v=20261016-picker-pets1" />
+  <link rel="stylesheet" href="css/device-mesh.css?v=20261016-toolbar1" />
+  <link rel="stylesheet" href="css/device-status.css?v=20261016-appearance1" />
+  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js?v=20261016-appearance1"}}</script>
 </head>
 <body>
   <div class="stage">
@@ -45,7 +47,7 @@
           </div>
           <div class="shell-dd" data-dd="color">
             <button type="button" class="shell-icon-btn" id="shell-color-btn" aria-expanded="false" aria-haspopup="dialog" aria-controls="shell-color-panel" aria-label="Shell color" title="Shell color">
-              <span class="shell-color-dot" id="shell-color-dot" aria-hidden="true"></span>
+              <span class="shell-symbol-slot" aria-hidden="true"><span class="shell-color-dot" id="shell-color-dot"></span></span>
               <svg class="shell-trigger-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="m3 4.5 3 3 3-3"/></svg>
             </button>
 
@@ -88,17 +90,17 @@
                 <div><strong id="shell-color-title" data-i18n="shellColorsLabel">Shell color</strong><p data-i18n="shellColorSub">A little color. A different mood.</p></div>
                 <button type="button" class="shell-panel-close" data-shell-close data-i18n-aria="close" aria-label="Close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
               </div>
-              <div class="shell-picker-selection" aria-live="polite"><span class="shell-selection-dot" aria-hidden="true"></span><span class="shell-color-name" id="shell-color-name">Obsidian</span></div>
+              <div class="shell-picker-selection" aria-live="polite"><span class="shell-selection-dot" aria-hidden="true"></span><span class="shell-color-name" id="shell-color-name">Fresh</span></div>
               <div class="shell-swatches" id="shell-swatches" role="radiogroup" aria-labelledby="shell-color-title"></div>
               <div class="shell-picker-footer shell-color-footer"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 5 1-1a3 3 0 0 1 4 4l-1 1M10 11l-1 1a3 3 0 0 1-4-4l1-1m0 3 4-4"/></svg><span data-i18n="shellColorHint">Frame, mood & companion. In sync.</span></div>
             </div>
     </div>
 
-    <div class="demo-stage" id="demo-stage" data-mode="shelled" data-shell="obsidian" data-model="island" data-top-chrome="island">
+    <div class="demo-stage" id="demo-stage" data-mode="shelled" data-shell="duolingo" data-model="iphone-18-pro-max" data-top-chrome="island">
       <div class="demo-stage-glow" aria-hidden="true"></div>
       <div class="device-rig" id="device-rig">
         <div class="device-float" id="device-float">
-        <div class="device-unit" id="device-unit" data-shell="obsidian" data-model="island" data-top-chrome="island">
+        <div class="device-unit" id="device-unit" data-shell="duolingo" data-model="iphone-18-pro-max" data-top-chrome="island">
           <div class="device-3d" id="device-3d">
           <div class="device-face-front">
           <div class="device-btn device-btn-silent" aria-hidden="true"></div>
@@ -115,11 +117,16 @@
               <div class="phone" id="phone">
         <!-- phone-notch kept for legacy DOM; CSS always hides — never fake island on app UI -->
         <div class="phone-notch" aria-hidden="true" hidden></div>
-        <div class="phone-status">
-          <span>9:41</span>
-          <span class="status-right">
-            <i class="sig"></i><i class="sig"></i><i class="sig"></i>
-            <span class="bat"></span>
+        <div class="phone-status" id="device-status" role="img" aria-live="off" hidden>
+          <time class="status-clock">--:--</time>
+          <span class="status-right" aria-hidden="true">
+            <svg class="status-cellular" viewBox="0 0 20 14"><rect x="1" y="10" width="3" height="3" rx=".7"/><rect x="6" y="7" width="3" height="6" rx=".7"/><rect x="11" y="4" width="3" height="9" rx=".7"/><rect x="16" y="1" width="3" height="12" rx=".7"/></svg>
+            <svg class="status-wifi" viewBox="0 0 20 15"><path d="M1.5 4.5a13 13 0 0 1 17 0"/><path d="M4.5 7.5a8.5 8.5 0 0 1 11 0"/><path d="M7.5 10.5a4 4 0 0 1 5 0"/><circle cx="10" cy="13" r="1.3"/></svg>
+            <svg class="status-plane" viewBox="0 0 24 20"><path d="m21 9-7-4V1.8a1.8 1.8 0 0 0-3.6 0V5L3 9v2l7.4-2v5.5L8 16v1.5l4.2-1 4.2 1V16L14 14.5V9l7 2Z"/></svg>
+            <span class="status-battery">
+              <svg class="status-charge" viewBox="0 0 8 14"><path d="M5 0 0 8h3l-1 6 6-9H5Z"/></svg>
+              <svg class="status-battery-icon" viewBox="0 0 30 15"><rect class="status-battery-outline" x=".8" y="1.5" width="25" height="12" rx="3"/><rect class="status-battery-fill" x="2.5" y="3.2" width="21.6" height="8.6" rx="1.5"/><path class="status-battery-terminal" d="M28 5.5v4"/><text class="status-battery-value" x="13.5" y="10.7">82</text></svg>
+            </span>
           </span>
         </div>
 
@@ -491,10 +498,12 @@
       </ul>
     </aside>
   </div>
-  <script src="js/i18n.js"></script>
-  <script src="js/palace.js"></script>
-  <script src="js/device-shell.js"></script>
-  <script src="js/pets.js"></script>
-  <script type="module" src="js/device-live-boot.js"></script>
+  <script src="js/i18n.js?v=20261016-picker-pets1"></script>
+  <script src="js/device-profiles.js?v=20261016-appearance1"></script>
+  <script src="js/palace.js?v=20261016-appearance1"></script>
+  <script src="js/device-shell.js?v=20261016-picker-pets1"></script>
+  <script src="js/device-status.js?v=20261016-appearance1"></script>
+  <script src="js/pets.js?v=20261016-release1"></script>
+  <script type="module" src="js/device-live-boot.js?v=20261016-release1"></script>
 </body>
 </html>

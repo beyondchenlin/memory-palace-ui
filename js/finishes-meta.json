@@ -8,5 +8,6 @@
   {"id":"purple","mood":"Muse","swatch":"#9b5de5"},
   {"id":"midnight","mood":"Focus","swatch":"#2c2c2e"},
   {"id":"starlight","mood":"Clear","swatch":"#f5f0e8"},
-  {"id":"natural-titanium","mood":"Steady","swatch":"#a89f91"}
+  {"id":"natural-titanium","mood":"Steady","swatch":"#a89f91"},
+  {"id":"pure-black","mood":"Black","swatch":"#101114"}
 ]

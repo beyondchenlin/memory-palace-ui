@@ -22,9 +22,13 @@
 }
 .mascot-pet-glyph {
   display: block;
+  width: 1em;
+  height: 1em;
   line-height: 1;
   transform: translateY(-.035em);
 }
+.pet-art { display: block; width: 1em; height: 1em; overflow: visible; flex-shrink: 0; }
+.stage-pet-emoji { display: grid; place-items: center; }
 .mascot-btn-mini .mascot-pet,
 .mascot-mini .mascot-pet {
   font-size: 1.05rem;
@@ -39,7 +43,8 @@
   place-items: center;
   flex-shrink: 0;
 }
-.finish-swatch .sw .swatch-pet {
+.finish-swatch .sw .swatch-pet,
+.shell-swatch-orb .swatch-pet {
   position: absolute;
   inset: 0;
   display: grid;

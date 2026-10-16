@@ -1,4 +1,6 @@
 /* Only 3D presentation overrides. Shared reference styles stay untouched. */
+/* The overscanned WebGL surface may extend past a narrow desktop viewport. */
+body.has-live-3d .stage { overflow-x: clip; }
 body.has-live-3d .device-unit { transform: none !important; transition: none !important; }
 body.has-live-3d .device-float {
   animation: none !important;
@@ -6,12 +8,30 @@ body.has-live-3d .device-float {
   transform-origin: top center;
 }
 body.has-live-3d .device-3d { visibility: hidden; }
+/* One composited parent moves both renderers; the GPU can stay idle. */
+body.has-live-3d .device-rig {
+  animation: live-device-breathe 5.5s ease-in-out infinite;
+  animation-play-state: paused;
+}
+body.has-live-3d .demo-stage.is-floating .device-rig { animation-play-state: running; }
+body.has-live-3d:has(.shell-dd-panel.is-open) .device-rig,
+body.has-live-3d .demo-stage .device-rig:focus-within,
+body.has-live-3d .demo-stage .device-rig:hover { animation-play-state: paused; }
+@keyframes live-device-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.has-live-3d .device-rig { animation: none; }
+}
 .device-webgl-mount {
   position: absolute;
   inset: -80px -60px;
   pointer-events: none;
   z-index: 2;
+  opacity: 0;
 }
+body.has-live-3d .device-webgl-mount { opacity: 1; }
 .device-webgl { display: block; width: 100%; height: 100%; pointer-events: none; }
 .device-screen-layer {
   position: absolute;
@@ -24,8 +44,8 @@ body.has-live-3d .device-3d { visibility: hidden; }
   inset: auto !important;
   left: 0 !important;
   top: 0 !important;
-  width: 390px !important;
-  height: 844px !important;
+  width: var(--live-screen-width, 390px) !important;
+  height: var(--live-screen-height, 844px) !important;
   margin: 0 !important;
   border-radius: var(--live-screen-radius, 40px) !important;
   transform-origin: 0 0 !important;
@@ -42,24 +62,42 @@ body.has-live-3d .device-3d { visibility: hidden; }
   position: absolute;
   z-index: 30;
   pointer-events: none;
-  top: 10px;
+  top: var(--live-cutout-top, 10px);
   left: 50%;
-  width: 118px;
-  height: 34px;
+  width: var(--live-cutout-width, 84px);
+  height: var(--live-cutout-height, 32px);
   transform: translateX(-50%);
   border-radius: 20px;
   background: radial-gradient(circle at calc(100% - 16px) 50%, #152839 0 3px, #050608 5px);
   box-shadow: inset 0 0 0 1px #ffffff0d;
 }
-.is-live-3d-screen[data-model='notch']::after {
-  top: 0; width: 164px; height: 28px; border-radius: 0 0 18px 18px; background: #050608;
-}
-.is-live-3d-screen[data-model='hole']::after {
-  top: 12px; width: 18px; height: 18px; border-radius: 50%;
+.is-live-3d-screen[data-top-chrome='hole']::after {
+  border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #24384b, #050608 60%);
 }
-.is-live-3d-screen[data-model='clean']::after { display: none; }
 .is-live-3d-screen .phone-status { top: 14px; }
-.is-live-3d-screen[data-model='island'] .phone-status,
-.is-live-3d-screen[data-model='notch'] .phone-status { top: 22px; }
+.is-live-3d-screen[data-top-chrome='island'] .phone-status { top: 22px; }
 body.is-real-phone .device-webgl-mount { display: none; }
+.device-rig.is-model-loading::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  right: 4px;
+  top: 28px;
+  border: 2px solid #ffffff35;
+  border-top-color: #ffffffb0;
+  border-radius: 50%;
+  animation: model-loading-spin .8s linear infinite;
+  pointer-events: none;
+}
+@keyframes model-loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .device-rig.is-model-loading::after { animation: none; }
+}
+
+body:not(.is-real-phone) .device-screen:not(.is-live-3d-screen) {
+  inset: var(--device-inset-y, 12px) var(--device-inset-x, 12px);
+}
+.device-load-status { grid-column: 1 / -1; margin: 6px 0 0; font-size: .75rem; color: #eac69b; }
+.device-unit:focus-visible { outline: 2px solid #dce9fc88; outline-offset: 9px; border-radius: 42px; }

@@ -69,7 +69,7 @@ window.LT_I18N = {
       shellHole: "Punch-hole camera",
       shellClean: "Edge-to-edge",
       shellHint: "Drag outside to rotate · double-click to reset",
-      shellFlip: "Peek side",
+      shellFlip: "Back view",
       shellReset: "Front",
       siteCue: "Listen → type → pin. Pick a frame & color above · practice line below.",
       shellModelsLabel: "Phone frame",
@@ -98,6 +98,14 @@ window.LT_I18N = {
       petCat: "Cat",
       petBunny: "Bunny",
       petBear: "Bear",
+      petPanda: "Panda",
+      petOctopus: "Octopus",
+      petChick: "Chick",
+      petCrab: "Crab",
+      petWhale: "Whale",
+      petButterfly: "Butterfly",
+      petRaccoon: "Raccoon",
+      petHedgehog: "Hedgehog",
       note8: "Mood pet on desktop opens Today's tone — tap to change"
     },
     zh: {
@@ -165,7 +173,7 @@ window.LT_I18N = {
       shellHole: "居中挖孔屏",
       shellClean: "纯净全面屏",
       shellHint: "空白处拖转 · 双击回正",
-      shellFlip: "侧看",
+      shellFlip: "背面",
       shellReset: "正面",
       siteCue: "听 → 打 → 钉。在手机上方选机型。",
       shellModelsLabel: "手机边框",
@@ -199,6 +207,14 @@ window.LT_I18N = {
       petCat: "猫",
       petBunny: "兔子",
       petBear: "熊",
+      petPanda: "熊猫",
+      petOctopus: "章鱼",
+      petChick: "小鸡",
+      petCrab: "螃蟹",
+      petWhale: "鲸鱼",
+      petButterfly: "蝴蝶",
+      petRaccoon: "浣熊",
+      petHedgehog: "刺猬",
       note8: "每种心境对应一只心情宠物 · 桌面可点它换色"
     },
     ja: {
@@ -266,7 +282,7 @@ window.LT_I18N = {
       shellHole: "パンチホール",
       shellClean: "全画面",
       shellHint: "画面外をドラッグして回転 · ダブルクリックでリセット",
-      shellFlip: "裏表",
+      shellFlip: "背面",
       siteCue: "Listen → type → pin.",
       shellModelsLabel: "Phone frame",
       shellColorsLabel: "シェルカラー",
@@ -295,6 +311,14 @@ window.LT_I18N = {
       petCat: "ネコ",
       petBunny: "ウサギ",
       petBear: "クマ",
+      petPanda: "パンダ",
+      petOctopus: "タコ",
+      petChick: "ひよこ",
+      petCrab: "カニ",
+      petWhale: "クジラ",
+      petButterfly: "チョウ",
+      petRaccoon: "アライグマ",
+      petHedgehog: "ハリネズミ",
       note8: "トーンごとにムードペット · デスクトップでタップ"
     },
     es: {
@@ -362,7 +386,7 @@ window.LT_I18N = {
       shellHole: "Cámara perforada",
       shellClean: "Pantalla completa",
       shellHint: "Arrastra fuera para girar · doble clic para reiniciar",
-      shellFlip: "Girar",
+      shellFlip: "Vista trasera",
       siteCue: "Listen → type → pin. Pick a frame & color above · practice line below.",
       shellModelsLabel: "Phone frame",
       shellColorsLabel: "Color del marco",
@@ -391,6 +415,14 @@ window.LT_I18N = {
       petCat: "Gato",
       petBunny: "Conejo",
       petBear: "Oso",
+      petPanda: "Panda",
+      petOctopus: "Pulpo",
+      petChick: "Pollito",
+      petCrab: "Cangrejo",
+      petWhale: "Ballena",
+      petButterfly: "Mariposa",
+      petRaccoon: "Mapache",
+      petHedgehog: "Erizo",
       note8: "Cada tono tiene mascota — tócela en escritorio para cambiar"
     },
     ko: {
@@ -458,7 +490,7 @@ window.LT_I18N = {
       shellHole: "펀치홀 카메라",
       shellClean: "전체 화면",
       shellHint: "바깥을 드래그해 회전 · 두 번 클릭해 초기화",
-      shellFlip: "뒤집기",
+      shellFlip: "뒷면",
       siteCue: "Listen → type → pin.",
       shellModelsLabel: "Phone frame",
       shellColorsLabel: "프레임 색상",
@@ -487,6 +519,14 @@ window.LT_I18N = {
       petCat: "고양이",
       petBunny: "토끼",
       petBear: "곰",
+      petPanda: "판다",
+      petOctopus: "문어",
+      petChick: "병아리",
+      petCrab: "게",
+      petWhale: "고래",
+      petButterfly: "나비",
+      petRaccoon: "너구리",
+      petHedgehog: "고슴도치",
       note8: "톤마다 펫 · 데스크톱에서 탭해 톤 변경"
     }
   },
@@ -502,7 +542,8 @@ window.LT_I18N = {
       purple: { mood: "Muse", hint: "Deep lilac" },
       midnight: { mood: "Focus", hint: "Near black" },
       starlight: { mood: "Clear", hint: "Cream silver" },
-      "natural-titanium": { mood: "Steady", hint: "Warm metal" }
+      "natural-titanium": { mood: "Steady", hint: "Warm metal" },
+      "pure-black": { mood: "Black", hint: "Ink black" }
     },
     zh: {
       duolingo: { mood: "清新", hint: "森林绿" },
@@ -514,7 +555,8 @@ window.LT_I18N = {
       purple: { mood: "灵感", hint: "丁香紫" },
       midnight: { mood: "专注", hint: "深空黑" },
       starlight: { mood: "澄明", hint: "星光银" },
-      "natural-titanium": { mood: "稳", hint: "原色钛" }
+      "natural-titanium": { mood: "稳", hint: "原色钛" },
+      "pure-black": { mood: "黑色", hint: "墨黑" }
     },
     ja: {
       duolingo: { mood: "Fresh", hint: "Forest" },
@@ -526,7 +568,8 @@ window.LT_I18N = {
       purple: { mood: "Muse", hint: "Lilac" },
       midnight: { mood: "Focus", hint: "Midnight" },
       starlight: { mood: "Clear", hint: "Starlight" },
-      "natural-titanium": { mood: "Steady", hint: "Titanium" }
+      "natural-titanium": { mood: "Steady", hint: "Titanium" },
+      "pure-black": { mood: "Black", hint: "ブラック" }
     },
     es: {
       duolingo: { mood: "Fresh", hint: "Forest" },
@@ -538,7 +581,8 @@ window.LT_I18N = {
       purple: { mood: "Muse", hint: "Lilac" },
       midnight: { mood: "Focus", hint: "Midnight" },
       starlight: { mood: "Clear", hint: "Starlight" },
-      "natural-titanium": { mood: "Steady", hint: "Titanium" }
+      "natural-titanium": { mood: "Steady", hint: "Titanium" },
+      "pure-black": { mood: "Black", hint: "Negro" }
     },
     ko: {
       duolingo: { mood: "Fresh", hint: "Forest" },
@@ -550,7 +594,8 @@ window.LT_I18N = {
       purple: { mood: "Muse", hint: "Lilac" },
       midnight: { mood: "Focus", hint: "Midnight" },
       starlight: { mood: "Clear", hint: "Starlight" },
-      "natural-titanium": { mood: "Steady", hint: "Titanium" }
+      "natural-titanium": { mood: "Steady", hint: "Titanium" },
+      "pure-black": { mood: "Black", hint: "블랙" }
     }
   }
 };

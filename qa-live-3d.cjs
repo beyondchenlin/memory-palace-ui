@@ -23,8 +23,10 @@ const base = process.env.QA_URL || 'http://127.0.0.1:8877/';
     assert.equal(await page.locator('#phone').count(), 1);
     assert.equal(await page.locator('.phone-status').count(), 1);
     assert.equal(await page.locator('.device-screen-capture-host').count(), 0);
-    assert(!requests.some(url => /\.glb|html-to-image/.test(url)));
-    const originalContent = await page.locator('#phone').innerHTML();
+    assert.equal(requests.filter(url => url.includes('.glb')).length, 1);
+    assert(!requests.some(url => /html-to-image/.test(url)));
+    const appContent = () => page.locator('#phone > .screen').evaluateAll(sections => sections.map(section => section.innerHTML));
+    const originalContent = await appContent();
     const front = await page.locator('.device-screen').boundingBox();
     await page.locator('#shell-model-btn').click();
     await page.waitForTimeout(400);
@@ -33,27 +35,27 @@ const base = process.env.QA_URL || 'http://127.0.0.1:8877/';
     assert.equal(await page.locator('#shell-models .shell-model').count(), 4);
     await page.locator('#shell-model-btn').click();
     await page.waitForTimeout(350);
-    results.push('One live screen; no duplicate status bar, screenshot clone, model or texture download; animated SVG appearance strips');
+    results.push('One live screen; no duplicate status bar or screenshot clone; exactly one lazy model download; animated SVG appearance strips');
 
     await page.locator('#shell-model-btn').click();
-    for (const model of ['island', 'notch', 'hole', 'clean']) {
+    for (const model of ['iphone-18-pro-max', 'galaxy-s26-ultra', 'iphone-18-pro', 'galaxy-s26']) {
       await page.locator('.shell-model[data-model="' + model + '"]').click();
       await page.waitForFunction(m => window.LT_MESH.getState().model === m, model);
       assert.equal(await page.locator('.device-screen').getAttribute('data-model'), model);
-      assert.equal(await page.locator('#phone').innerHTML(), originalContent);
+      assert.deepEqual(await appContent(), originalContent);
     }
     await page.keyboard.press('Escape');
     await page.waitForTimeout(350);
-    assert.equal(await page.locator('.shell-swatch').count(), 10);
+    assert.equal(await page.locator('.shell-swatch').count(), 11);
     await page.locator('#shell-color-btn').click();
-    for (const finish of ['cobalt', 'amethyst', 'pearl', 'sterling']) {
+    for (const finish of ['space-blue', 'violet-night', 'duolingo', 'purple', 'starlight']) {
       await page.locator('.shell-swatch[data-shell="' + finish + '"]').click();
       await page.waitForFunction(id => window.LT_MESH.getState().finish === id, finish);
       assert.equal(await page.locator('#device-unit').getAttribute('data-shell'), finish);
     }
     await page.keyboard.press('Escape');
     await page.waitForTimeout(350);
-    results.push('All four actual 3D silhouettes and ten reference color choices; shell, tone, background and pet stay linked');
+    results.push('All four actual 3D silhouettes and eleven color choices; shell, tone, background and pet stay linked');
     await page.evaluate(() => window.LT_SHELL.setOrbit(-8, 32));
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(output, 'after-3d-angle.png') });
@@ -63,6 +65,8 @@ const base = process.env.QA_URL || 'http://127.0.0.1:8877/';
     assert(Math.abs(tilted.y - projection.aabb.top) < 0.1);
     assert(Math.abs(tilted.width - projection.aabb.width) < 0.1);
     assert.equal(await page.locator('.device-screen').evaluate(el => getComputedStyle(el).pointerEvents), 'auto');
+    const lessonButton = await page.locator('[data-goto="lesson"]').first().boundingBox();
+    await page.mouse.move(lessonButton.x + lessonButton.width / 2, lessonButton.y + lessonButton.height / 2);
     await page.locator('[data-goto="lesson"]').first().click();
     assert(await page.locator('#screen-lesson').evaluate(el => el.classList.contains('is-active')));
     await page.locator('#btn-interpret').click();
@@ -118,7 +122,7 @@ const base = process.env.QA_URL || 'http://127.0.0.1:8877/';
       }
     }
     await page.locator('.tab[data-screen="home"]').click();
-    await page.evaluate(() => { window.LT_SHELL.applyShell('sterling'); window.LT_SHELL.setOrbit(-6, 36); });
+    await page.evaluate(() => { window.LT_SHELL.applyShell('starlight'); window.LT_SHELL.setOrbit(-6, 36); });
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(output, 'after-3d-angle-zh.png') });
     await page.evaluate(() => window.scrollTo(0, 120));

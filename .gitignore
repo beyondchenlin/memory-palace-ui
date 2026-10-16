@@ -16,3 +16,6 @@ Thumbs.db
 .cache/
 .vercel
 .env*
+qa-generated/
+# Superseded local lighting bake; the release uses assets/devices/*.hdr.gz.
+/assets/lighting/studio-softboxes.png

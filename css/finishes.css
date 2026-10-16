@@ -263,6 +263,39 @@ html[data-finish="midnight"] {
   --stage-b: #2c2c2e;
 }
 
+/* Ink black: a separate finish from the existing graphite-gray Focus. */
+:root[data-finish="pure-black"],
+html[data-finish="pure-black"] {
+  --bg-stage: #08090b;
+  --bg-phone: #f4f4f5;
+  --ink: #18191c;
+  --ink-soft: #62636a;
+  --cream: #fafafa;
+  --card: #ffffff;
+  --green: #101114;
+  --green-deep: #000000;
+  --green-glow: rgba(16, 17, 20, 0.22);
+  --mint: #45464d;
+  --amber: #ffc800;
+  --amber-deep: #c99d00;
+  --coral: #ff4b4b;
+  --sky: #526780;
+  --sky-deep: #37465b;
+  --hud-cyan: #9ba9bc;
+  --hud-edge: rgba(155, 169, 188, 0.5);
+  --war: #c45c26;
+  --toon: #ff8fab;
+  --shadow: 0 10px 28px rgba(16, 17, 20, 0.14);
+  --shadow-soft: 0 4px 14px rgba(16, 17, 20, 0.08);
+  --chrome-border: #d9d9de;
+  --chrome-border-soft: #e1e1e6;
+  --meter-track: #e2e2e6;
+  --ref-bg: #ededf0;
+  --ghost-bg: #e9e9ed;
+  --stage-a: #101114;
+  --stage-b: #202127;
+}
+
 /* Starlight · Cream silver */
 :root[data-finish="starlight"],
 html[data-finish="starlight"] {

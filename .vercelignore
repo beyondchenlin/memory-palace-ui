@@ -5,12 +5,16 @@ screenshots
 *.bak-*
 qa-*.mjs
 qa-*.cjs
+qa-*.py
+qa-*.jsx
+qa-generated/
 .env*
 index.html.bak*
 assets/models/iphone-15-pro-max.glb
 
-# Retain legacy source/evidence in Git; the live adapter needs only three.module.js.
+# Retain legacy source/evidence in Git; active assets are under assets/devices/.
 assets/models/
+assets/lighting/
 vendor/html-to-image/
 vendor/three/examples/
 js/device-mesh.js

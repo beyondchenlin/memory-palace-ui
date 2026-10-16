@@ -6,6 +6,18 @@
   "dependencies": {
     "pngjs": "^7.0.0",
     "puppeteer-core": "^25.14.0",
-    "three": "^0.170.0"
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "react-3d-mockups": "0.2.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@react-three/fiber": "9.8.1",
+    "@react-three/drei": "10.7.9",
+    "esbuild": "0.27.3",
+    "@gltf-transform/core": "4.3.0",
+    "@gltf-transform/extensions": "4.3.0",
+    "@gltf-transform/functions": "4.3.0",
+    "meshoptimizer": "0.25.0"
   }
 }

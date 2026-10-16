@@ -1,0 +1,29 @@
+/* Desktop handset simulation: the clock is real, radio/battery states are demo. */
+.phone-status[hidden], body.is-real-phone .phone-status { display: none !important; }
+.phone-status { font-variant-numeric: tabular-nums; user-select: none; gap: 8px; }
+.status-clock { min-width: 36px; font-weight: 800; letter-spacing: -.02em; }
+.phone-status .status-right { gap: 5px; color: currentColor; height: 15px; }
+.phone-status svg { display: block; flex: none; overflow: visible; }
+.status-cellular { width: 17px; height: 13px; fill: currentColor; }
+.status-cellular rect { transition: opacity .4s ease; }
+.status-wifi { width: 17px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.status-wifi path { transition: opacity .4s ease; }
+.status-wifi circle { fill: currentColor; stroke: none; }
+.status-plane { display: none !important; width: 18px; height: 14px; fill: currentColor; }
+.phone-status.is-airplane .status-cellular, .phone-status.is-airplane .status-wifi { display: none; }
+.phone-status.is-airplane .status-plane { display: block !important; animation: status-takeoff .65s ease-out; }
+.status-battery { position: relative; display: flex; align-items: center; margin-left: 2px; }
+.status-battery-icon { width: 29px; height: 15px; }
+.status-battery-outline { fill: none; stroke: currentColor; stroke-width: 1.2; opacity: .55; }
+.status-battery-terminal { stroke: currentColor; stroke-width: 2; stroke-linecap: round; opacity: .5; }
+.status-battery-fill { fill: currentColor; opacity: .18; transform-origin: 2.5px 7.5px; transform: scaleX(var(--battery-level, .82)); transition: transform 1s ease, fill .4s ease; }
+.status-battery-value { fill: currentColor; font-size: 9px; font-weight: 900; font-family: system-ui, sans-serif; text-anchor: middle; }
+.status-charge { display: none !important; position: absolute; width: 6px; height: 11px; left: -7px; fill: #218442; }
+.phone-status.is-charging .status-charge { display: block !important; animation: status-charge-in 1.2s ease 2; }
+.phone-status.is-charging .status-battery-fill { fill: #29a956; opacity: .65; }
+.phone-status.is-low-battery:not(.is-charging) .status-battery-fill { fill: #d53c42; opacity: .6; }
+@keyframes status-takeoff { from { opacity: .2; transform: translate(-3px, 2px) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes status-charge-in { 50% { opacity: .4; } }
+@media (prefers-reduced-motion: reduce) {
+  .phone-status *, .phone-status.is-airplane .status-plane, .phone-status.is-charging .status-charge { animation: none !important; transition: none !important; }
+}

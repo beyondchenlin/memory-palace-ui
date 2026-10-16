@@ -6,28 +6,23 @@
   const STORAGE_MODEL = "lt-palace-shell-model";
   const STORAGE_FINISH = "lt-palace-shell";
 
-  const MODELS = [
-    { id: "island", name: "Island Pro", topChrome: "island", detail: "shellIsland" },
-    { id: "notch", name: "Classic Notch", topChrome: "notch", detail: "shellNotch" },
-    { id: "hole", name: "Android Hole", topChrome: "hole", detail: "shellHole" },
-    { id: "clean", name: "Clean", topChrome: "none", detail: "shellClean" },
-  ];
+  const MODELS = window.LT_DEVICES.models;
 
-  const FINISHES = [
-    { id: "obsidian", name: "Obsidian", swatch: "#1a1c20", wash: "#d8dbe3" },
-    { id: "sterling", name: "Sterling", swatch: "#c5cad3", wash: "#eef1f5" },
-    { id: "champagne", name: "Champagne", swatch: "#c9a86a", wash: "#f5ecd8" },
-    { id: "cobalt", name: "Cobalt", swatch: "#1e3a6e", wash: "#d5e2f5" },
-    { id: "crimson", name: "Crimson", swatch: "#8b1e2d", wash: "#f3d8dc" },
-    { id: "glacier", name: "Glacier", swatch: "#7eb8d4", wash: "#dff0f8" },
-    { id: "amethyst", name: "Amethyst", swatch: "#5b3d8a", wash: "#e8dff5" },
-    { id: "graphite", name: "Graphite", swatch: "#4a4d52", wash: "#e2e4e8" },
-    { id: "pearl", name: "Pearl", swatch: "#e8e4dc", wash: "#f7f5f0" },
-    { id: "sand", name: "Sand", swatch: "#b5a894", wash: "#f3eee4" },
-  ];
-
-  /* Bidirectional link: shell finish ↔ in-phone Today's tone (hue pairing) */
-  const SHELL_TO_TONE = {
+  // The in-phone palette owns IDs, order, colors and translated mood names.
+  const FINISHES = window.LT_PALACE.FINISH_IDS.map((finish) => ({
+    ...finish,
+    wash: window.LT_PALACE.TONE_WASH[finish.id],
+    get name() {
+      const code = (document.documentElement.lang || "en").slice(0, 2);
+      const labels = window.LT_I18N.finishes;
+      const label = labels[code]?.[finish.id] || labels.en?.[finish.id];
+      return label?.mood || (finish.id === "pure-black" ? "Black" : finish.id);
+    },
+  }));
+  const SHELL_TO_TONE = Object.fromEntries(FINISHES.map(({ id }) => [id, id]));
+  const TONE_TO_SHELL = SHELL_TO_TONE;
+  // Accept saved shell IDs from the previous palette without showing duplicates.
+  const LEGACY_FINISHES = {
     obsidian: "midnight",
     sterling: "starlight",
     champagne: "space-gold",
@@ -39,18 +34,9 @@
     pearl: "starlight",
     sand: "natural-titanium",
   };
-  const TONE_TO_SHELL = {
-    midnight: "obsidian",
-    starlight: "sterling",
-    "space-gold": "champagne",
-    "space-blue": "cobalt",
-    "product-red": "crimson",
-    "sierra-blue": "glacier",
-    "violet-night": "amethyst",
-    purple: "amethyst",
-    "natural-titanium": "sand",
-    duolingo: "obsidian",
-  };
+  function normalizeFinish(id) {
+    return LEGACY_FINISHES[id] || id;
+  }
 
   const stage = document.getElementById("demo-stage");
   const unit = document.getElementById("device-unit");
@@ -72,6 +58,7 @@
   const MAX_PITCH = 68;
   let rotX = 0;
   let rotY = 0;
+  let backView = false;
   let dragging = false;
   let dragMoved = false;
   let lastX = 0;
@@ -97,7 +84,10 @@
     const params = new URLSearchParams(location.search);
     if (params.get("forcePhone") === "1") return true;
     if (params.get("forceShell") === "1") return false;
-    return window.matchMedia("(max-width: 540px)").matches;
+    // Phones remain phones in landscape. A coarse pointer plus the physical
+    // screen's short CSS side avoids misclassifying a tablet with its keyboard.
+    return window.matchMedia("(max-width: 540px)").matches ||
+      (window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 540);
   }
 
   function prefersReduced() {
@@ -146,11 +136,12 @@
       return;
     }
     const x = rotX + hoverTiltX;
-    const y = rotY + hoverTiltY;
+    const y = rotY + hoverTiltY + (backView ? 180 : 0);
     unit.style.setProperty("--shell-tilt-x", x.toFixed(2) + "deg");
     unit.style.setProperty("--shell-tilt-y", y.toFixed(2) + "deg");
     // With ±80 yaw we stay front-ish; keep class off so screen stays clickable
-    unit.classList.toggle("is-back", false);
+    unit.classList.toggle("is-back", backView);
+    document.getElementById("shell-flip")?.setAttribute("aria-pressed", String(backView));
     document.dispatchEvent(new CustomEvent('lt-shell-render', { detail: { x, y } }));
   }
 
@@ -170,10 +161,15 @@
 
   function applyMode() {
     const phone = isRealPhone();
+    if (phone && dragging) onPointerUp({pointerId: activePointerId});
     document.body.classList.toggle("is-real-phone", phone);
+    unit.tabIndex = phone ? -1 : 0;
+    if (phone) unit.removeAttribute('aria-keyshortcuts');
+    else unit.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight ArrowUp ArrowDown Home');
     stage.dataset.mode = phone ? "unshelled" : "shelled";
     stage.classList.toggle("is-floating", !phone && !prefersReduced() && !dragging);
     if (phone) {
+      backView = false;
       rotX = 0;
       rotY = 0;
       hoverTiltX = 0;
@@ -190,9 +186,16 @@
   }
 
   function applyModel(id, persist) {
-    const model = MODELS.find((m) => m.id === id) || MODELS[0];
+    const model = window.LT_DEVICES.get(id);
     unit.dataset.model = model.id;
     stage.dataset.model = model.id;
+    stage.style.setProperty("--device-body-w", model.width + "px");
+    stage.style.setProperty("--device-body-h", model.height + "px");
+    stage.style.setProperty("--shell-radius", model.radius * window.LT_DEVICES.scale + "px");
+    stage.style.setProperty("--shell-screen-radius", model.screenRadius * window.LT_DEVICES.scale + "px");
+    stage.style.setProperty("--device-inset-x", (model.width - model.displayWidth) / 2 + "px");
+    stage.style.setProperty("--device-inset-y", (model.height - model.displayHeight) / 2 + "px");
+    unit.setAttribute("aria-label", model.name + " · " + model.dimensions);
     if (!isRealPhone()) {
       unit.dataset.topChrome = model.topChrome;
       stage.dataset.topChrome = model.topChrome;
@@ -225,9 +228,10 @@
   }
 
   function applyFinish(id, persist, linkTone) {
-    const finish = FINISHES.find((s) => s.id === id) || FINISHES[0];
+    const finish = FINISHES.find((s) => s.id === normalizeFinish(id)) || FINISHES[0];
     unit.dataset.shell = finish.id;
     stage.dataset.shell = finish.id;
+    stage.style.setProperty("--shell-finish", finish.swatch);
     document.documentElement.style.setProperty("--shell-accent-live", finish.swatch);
     /* Shell wash is a fallback; linked tone wash wins when tone sync runs */
     if (!linkingFromTone) {
@@ -301,7 +305,7 @@
   function updateName() {
     const model = MODELS.find((m) => m.id === unit.dataset.model) || MODELS[0];
     const finish = FINISHES.find((s) => s.id === unit.dataset.shell) || FINISHES[0];
-    if (nameEl) nameEl.textContent = model.name;
+    if (nameEl) nameEl.textContent = model.name + " · " + model.dimensions;
     updateCompactIcons();
   }
 
@@ -470,23 +474,17 @@
   const checkSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 8 3 3 6-6"/></svg>';
 
   function phoneSvg(model, width, height) {
-    const chrome = {
-      island: '<rect x="21" y="12" width="18" height="5" rx="2.5"/><circle class="picker-phone-lens" cx="35" cy="14.5" r="1.2"/>',
-      notch: '<path d="M16 8h28v4a5 5 0 0 1-5 5H21a5 5 0 0 1-5-5z"/><rect class="picker-phone-speaker" x="25" y="10" width="10" height="1.5" rx=".75"/>',
-      hole: '<circle cx="30" cy="14" r="3"/><circle class="picker-phone-lens" cx="30" cy="14" r="1.5"/>',
-      none: '',
-    };
-    const radius = model.id === "hole" ? 7 : 10;
-    return '<svg class="picker-phone" viewBox="0 0 60 110" width="' + width + '" height="' + height + '" aria-hidden="true" focusable="false">' +
-      '<rect class="picker-phone-button" x="4" y="23" width="3" height="12" rx="1"/><rect class="picker-phone-button" x="53" y="32" width="3" height="17" rx="1"/>' +
-      '<rect class="picker-phone-body" x="6" y="4" width="48" height="102" rx="' + radius + '"/>' +
-      '<rect class="picker-phone-screen" x="9" y="7" width="42" height="96" rx="' + (radius - 2) + '"/>' +
-      '<path class="picker-phone-wallpaper" d="M9 57C25 26 42 38 51 23v72a8 8 0 0 1-8 8H17a8 8 0 0 1-8-8Z"/>' +
-      '<path class="picker-phone-reflection" d="M9 37C26 56 39 31 51 47v20C36 51 24 80 9 60Z"/>' +
-      '<g class="picker-phone-chrome">' + chrome[model.topChrome] + '</g>' +
-      '<rect class="picker-phone-home" x="22" y="97" width="16" height="2" rx="1"/></svg>';
+    const w = model.mm.width, h = model.mm.height;
+    const sx = (model.width - model.displayWidth) / (2 * window.LT_DEVICES.scale);
+    const sy = (model.height - model.displayHeight) / (2 * window.LT_DEVICES.scale);
+    const cutout = model.cutout;
+    return '<svg class="picker-phone" viewBox="-5 -4 88 174" width="' + width + '" height="' + height + '" aria-hidden="true" focusable="false">' +
+      model.buttons.map(([side,y,length]) => '<rect class="picker-phone-button" x="' + (side < 0 ? -1.4 : w - .2) + '" y="' + (h/2-y-length/2) + '" width="1.6" height="' + length + '" rx=".8"/>').join('') +
+      '<rect class="picker-phone-body" width="' + w + '" height="' + h + '" rx="' + model.radius + '"/>' +
+      '<rect class="picker-phone-screen" x="' + sx + '" y="' + sy + '" width="' + (w-2*sx) + '" height="' + (h-2*sy) + '" rx="' + model.screenRadius + '"/>' +
+      '<rect class="picker-phone-chrome" x="' + (w-cutout.width)/2 + '" y="' + (sy+cutout.offset-cutout.height/2) + '" width="' + cutout.width + '" height="' + cutout.height + '" rx="' + cutout.height/2 + '"/>' +
+      '<rect class="picker-phone-home" x="' + (w/2-10) + '" y="' + (h-sy-4) + '" width="20" height="1" rx=".5"/></svg>';
   }
-
   function buildModels() {
     if (!modelEl) return;
     modelEl.innerHTML = "";
@@ -498,7 +496,7 @@
       btn.dataset.topChrome = m.topChrome;
       btn.setAttribute("role", "radio");
       btn.setAttribute("aria-label", m.name);
-      btn.innerHTML = phoneSvg(m, 32, 58) + '<span class="shell-model-copy"><strong>' + m.name + '</strong><span data-i18n="' + m.detail + '">' + tShell(m.detail, m.name) + '</span></span><span class="shell-model-check">' + checkSvg + '</span>';
+      btn.innerHTML = phoneSvg(m, 18, 32) + '<span class="shell-model-copy"><strong>' + m.name + '</strong><span>' + m.dimensions + '</span></span><span class="shell-model-check">' + checkSvg + '</span>';
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         applyModel(m.id);
@@ -509,6 +507,7 @@
 
   function buildSwatches() {
     if (!swatches) return;
+    swatches.style.setProperty("--shell-color-count", FINISHES.length);
     swatches.innerHTML = "";
     FINISHES.forEach((s) => {
       const btn = document.createElement("button");
@@ -518,7 +517,7 @@
       btn.style.setProperty("--swatch", s.swatch);
       const rgb = s.swatch.match(/\w\w/g).map((channel) => parseInt(channel, 16));
       btn.style.setProperty("--swatch-ink", rgb[0] * .299 + rgb[1] * .587 + rgb[2] * .114 > 150 ? "#18202b" : "#fff");
-      btn.innerHTML = '<span class="shell-swatch-orb" aria-hidden="true"><span class="shell-swatch-check">' + checkSvg + '</span></span><span class="shell-swatch-name">' + s.name + '</span>';
+      btn.innerHTML = '<span class="shell-swatch-orb" aria-hidden="true"></span><span class="shell-swatch-name">' + s.name + '</span><span class="shell-swatch-check" aria-hidden="true">' + checkSvg + '</span>';
       btn.title = s.name;
       btn.setAttribute("role", "radio");
       btn.setAttribute("aria-label", s.name);
@@ -539,6 +538,7 @@
     if (isRealPhone() || prefersReduced() || dragging) return;
     const target = e.target;
     if (isOverScreen(target) || !rig.contains(target)) {
+      if (hoverTiltX === 0 && hoverTiltY === 0) return;
       hoverTiltX = 0;
       hoverTiltY = 0;
       applyTransform();
@@ -560,13 +560,14 @@
 
   function onHoverLeave() {
     if (dragging) return;
+    if (hoverTiltX === 0 && hoverTiltY === 0) return;
     hoverTiltX = 0;
     hoverTiltY = 0;
     applyTransform();
   }
 
   function onPointerDown(e) {
-    if (isRealPhone() || prefersReduced()) return;
+    if (isRealPhone()) return;
     if (e.button != null && e.button !== 0) return;
     if (!canStartOrbit(e.target)) return;
     dragging = true;
@@ -621,6 +622,7 @@
   }
 
   function resetOrbit() {
+    backView = false;
     rotX = 0;
     rotY = 0;
     hoverTiltX = 0;
@@ -630,7 +632,7 @@
   }
 
   function onDblClickOutside(e) {
-    if (isRealPhone() || prefersReduced()) return;
+    if (isRealPhone()) return;
     // Double-click empty area outside the phone shell → flat front
     if (isOverPhoneShell(e.target)) return;
     if (isInteractiveChrome(e.target)) return;
@@ -643,8 +645,20 @@
   document.addEventListener("pointermove", onPointerMove);
   document.addEventListener("pointerup", onPointerUp);
   document.addEventListener("pointercancel", onPointerUp);
+  window.addEventListener("blur", () => {
+    if (dragging) onPointerUp({ pointerId: activePointerId });
+  });
   rig.addEventListener("pointerleave", onHoverLeave);
   document.addEventListener("dblclick", onDblClickOutside);
+  unit.addEventListener('keydown', event => {
+    // Only the focused frame owns these keys; inputs/buttons inside keep theirs.
+    if (event.target !== unit || isRealPhone()) return;
+    const steps={ArrowLeft:[0,-8],ArrowRight:[0,8],ArrowUp:[6,0],ArrowDown:[-6,0]};
+    if (event.key === 'Home') { event.preventDefault(); resetOrbit(); return; }
+    const step=steps[event.key];
+    if (!step) return;
+    event.preventDefault();rotX+=step[0];rotY+=step[1];clampOrbit();applyTransform();
+  });
 
   // Hard guarantee: interactive screen keeps auto hit-testing.
   // Do NOT stopPropagation on capture — that would kill button clicks.
@@ -656,12 +670,12 @@
   const resetBtn = document.getElementById("shell-reset");
   if (resetBtn) resetBtn.addEventListener("click", resetOrbit);
 
-  // Side peek helper (yaw capped at ±80 — no full flip past edge)
+  // Explicit back view keeps ordinary front-facing drag within its ±80° range.
   const flipBtn = document.getElementById("shell-flip");
   if (flipBtn) {
     flipBtn.addEventListener("click", () => {
-      if (Math.abs(rotY) > 40) rotY = 0;
-      else rotY = rotY < 0 ? -MAX_YAW : MAX_YAW;
+      backView = !backView;
+      rotY = 0;
       rotX = 0;
       clampOrbit();
       applyTransform();
@@ -673,13 +687,14 @@
   wireCompactChrome();
 
   const bootParams = new URLSearchParams(location.search);
-  const qModel = bootParams.get("model");
-  const qShell = bootParams.get("shell");
+  const qModel = bootParams.has("model") ? window.LT_DEVICES.get(bootParams.get("model")).id : null;
+  const qShell = normalizeFinish(bootParams.get("shell"));
   let savedModel = null;
   let savedFinish = null;
   try {
-    savedModel = localStorage.getItem(STORAGE_MODEL);
-    savedFinish = localStorage.getItem(STORAGE_FINISH);
+    const storedModel = localStorage.getItem(STORAGE_MODEL);
+    savedModel = storedModel ? window.LT_DEVICES.get(storedModel).id : null;
+    savedFinish = normalizeFinish(localStorage.getItem(STORAGE_FINISH));
   } catch (_) {}
 
   const bootModel =
@@ -687,13 +702,13 @@
       ? qModel
       : savedModel && MODELS.some((m) => m.id === savedModel)
         ? savedModel
-        : "island";
+        : MODELS[0].id;
   const bootFinish =
     qShell && FINISHES.some((s) => s.id === qShell)
       ? qShell
       : savedFinish && FINISHES.some((s) => s.id === savedFinish)
         ? savedFinish
-        : "obsidian";
+        : FINISHES[0].id;
 
   applyModel(bootModel, false);
   /* Boot without linking so palace tone (loaded first) stays source of truth */
@@ -733,11 +748,13 @@
     closeShellDrawers,
     updateCompactIcons,
     getOrbit() {
-      return { rotX, rotY, maxYaw: MAX_YAW, maxPitch: MAX_PITCH };
+      return { rotX, rotY: rotY + (backView ? 180 : 0), backView, maxYaw: MAX_YAW, maxPitch: MAX_PITCH };
     },
     setOrbit(x, y) {
       rotX = Number(x) || 0;
-      rotY = Number(y) || 0;
+      const yaw = Number(y) || 0;
+      backView = Math.abs(yaw) >= 100 && Math.abs(yaw) <= 260;
+      rotY = backView ? yaw - Math.sign(yaw) * 180 : yaw;
       clampOrbit();
       applyTransform();
       return this.getOrbit();
@@ -753,6 +770,12 @@
     if (label && !label.textContent) label.textContent = tShell("shellLabel", "Device shell");
     const hint = document.querySelector("[data-i18n='shellHint']");
     if (hint) hint.textContent = tShell("shellHint", "Drag empty space to rotate (±80°) · double-click outside phone to reset · tap screen to practice");
+    swatches?.querySelectorAll(".shell-swatch").forEach((button) => {
+      const finish = FINISHES.find((item) => item.id === button.dataset.shell);
+      button.querySelector(".shell-swatch-name").textContent = finish.name;
+      button.title = finish.name;
+      button.setAttribute("aria-label", finish.name);
+    });
     updateCompactIcons();
   });
 

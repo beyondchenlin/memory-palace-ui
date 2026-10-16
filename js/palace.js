@@ -10,6 +10,7 @@
     { id: "midnight", swatch: "#2c2c2e" },
     { id: "starlight", swatch: "#f5f0e8" },
     { id: "natural-titanium", swatch: "#a89f91" },
+    { id: "pure-black", swatch: "#101114" },
   ];
   const TONE_WASH = {
     duolingo: "#e5f6d4",
@@ -22,6 +23,7 @@
     midnight: "#e2e3e8",
     starlight: "#f7f4ee",
     "natural-titanium": "#efeae3",
+    "pure-black": "#dedee1",
   };
   const STORAGE_FINISH = "lt-palace-finish";
   const STORAGE_FOLLOW = "lt-palace-follow-tone";

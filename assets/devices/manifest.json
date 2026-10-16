@@ -1,0 +1,719 @@
+{
+  "source": "area-is/react-3d-mockups",
+  "version": "0.2.0",
+  "license": "MIT",
+  "devices": [
+    {
+      "id": "iphone-18-pro-max",
+      "name": "iPhone 18 Pro Max",
+      "kind": "iphone",
+      "variant": "18promax",
+      "mm": {
+        "width": 78,
+        "height": 163.4,
+        "depth": 8.75
+      },
+      "file": "iphone-18-pro-max.d4f7980916.glb",
+      "bytes": 658068,
+      "spec": {
+        "body": {
+          "width": 2.1,
+          "height": 4.398,
+          "depth": 0.2355,
+          "radius": 0.34,
+          "bevel": 0.02
+        },
+        "glass": {
+          "width": 2.04,
+          "height": 4.338,
+          "radius": 0.3
+        },
+        "display": {
+          "width": 1.962,
+          "height": 4.263,
+          "radius": 0.279
+        },
+        "island": {
+          "width": 0.419,
+          "height": 0.159,
+          "offsetY": 0.144
+        },
+        "resolution": 440,
+        "buttons": [
+          {
+            "edge": "left",
+            "y": 1.276,
+            "length": 0.186
+          },
+          {
+            "edge": "left",
+            "y": 0.896,
+            "length": 0.302
+          },
+          {
+            "edge": "left",
+            "y": 0.514,
+            "length": 0.302
+          },
+          {
+            "edge": "right",
+            "y": 0.705,
+            "length": 0.477
+          },
+          {
+            "edge": "right",
+            "y": -0.81,
+            "length": 0.455,
+            "flush": true
+          }
+        ],
+        "buttonProfile": {
+          "protrusion": 0.012,
+          "thickness": 0.072
+        },
+        "rearCamera": {
+          "style": "bar",
+          "frame": {
+            "x": 0,
+            "y": 1.5969,
+            "width": 2.06,
+            "height": 1.1642,
+            "radius": 0.32,
+            "raise": 0.0748,
+            "wall": 0.05
+          },
+          "ringFinish": "matte",
+          "ringCollar": 0.86,
+          "lenses": [
+            {
+              "x": 0.6632,
+              "y": 1.8127,
+              "r": 0.2232,
+              "h": 0.0568,
+              "pupil": 0.28,
+              "bore": 0.59,
+              "glint": "#5a3f7a"
+            },
+            {
+              "x": 0.6632,
+              "y": 1.2947,
+              "r": 0.2232,
+              "h": 0.0568,
+              "pupil": 0.3,
+              "bore": 0.59,
+              "glint": "#6a3f70",
+              "iris": 6
+            },
+            {
+              "x": 0.1755,
+              "y": 1.5537,
+              "r": 0.2232,
+              "h": 0.0568,
+              "pupil": 0.4,
+              "bore": 0.51,
+              "glint": "#443f7a"
+            }
+          ],
+          "flash": {
+            "x": -0.677,
+            "y": 1.8127,
+            "r": 0.0929
+          },
+          "dots": [
+            {
+              "x": -0.677,
+              "y": 1.28,
+              "r": 0.0929,
+              "kind": "sensor"
+            },
+            {
+              "x": -0.677,
+              "y": 1.5537,
+              "r": 0.0155,
+              "kind": "mic"
+            }
+          ]
+        },
+        "backWindow": {
+          "y": -0.5932,
+          "width": 1.8894,
+          "height": 3.0032,
+          "radius": 0.4307
+        },
+        "bottomEdge": {
+          "usb": {
+            "x": 0,
+            "width": 0.244,
+            "height": 0.085
+          },
+          "screws": [
+            {
+              "x": 0.187,
+              "r": 0.02
+            },
+            {
+              "x": -0.187,
+              "r": 0.02
+            }
+          ],
+          "speakers": [
+            {
+              "x": 0.333,
+              "r": 0.021
+            },
+            {
+              "x": 0.394,
+              "r": 0.021
+            },
+            {
+              "x": 0.455,
+              "r": 0.021
+            },
+            {
+              "x": 0.516,
+              "r": 0.021
+            },
+            {
+              "x": 0.577,
+              "r": 0.021
+            },
+            {
+              "x": 0.637,
+              "r": 0.021
+            },
+            {
+              "x": -0.333,
+              "r": 0.021
+            },
+            {
+              "x": -0.394,
+              "r": 0.021
+            },
+            {
+              "x": -0.455,
+              "r": 0.021
+            },
+            {
+              "x": -0.516,
+              "r": 0.021
+            },
+            {
+              "x": -0.577,
+              "r": 0.021
+            },
+            {
+              "x": -0.637,
+              "r": 0.021
+            }
+          ]
+        },
+        "antennaLines": [
+          1.764,
+          -1.764
+        ],
+        "topWindow": {
+          "width": 0.738,
+          "height": 0.121
+        },
+        "logo": {
+          "y": -0.5464,
+          "width": 0.4393,
+          "height": 0.5394
+        }
+      },
+      "sourceMeshes": 69,
+      "sourceMaterials": 69,
+      "tintedMaterials": 14
+    },
+    {
+      "id": "galaxy-s26-ultra",
+      "name": "Galaxy S26 Ultra",
+      "kind": "galaxy",
+      "variant": "s26ultra",
+      "mm": {
+        "width": 78.1,
+        "height": 163.6,
+        "depth": 7.9
+      },
+      "file": "galaxy-s26-ultra.6a92c5fafb.glb",
+      "bytes": 375440,
+      "spec": {
+        "body": {
+          "width": 2.13,
+          "height": 4.463,
+          "depth": 0.216,
+          "radius": 0.199,
+          "bevel": 0.02
+        },
+        "glass": {
+          "width": 2.07,
+          "height": 4.403,
+          "radius": 0.179
+        },
+        "display": {
+          "width": 1.995,
+          "height": 4.328,
+          "radius": 0.138
+        },
+        "punchHole": {
+          "radius": 0.05,
+          "offsetY": 0.106
+        },
+        "resolution": 384,
+        "buttons": [
+          {
+            "y": 1.217,
+            "length": 0.546
+          },
+          {
+            "y": 0.477,
+            "length": 0.364
+          }
+        ],
+        "buttonProfile": {
+          "protrusion": 0.012,
+          "thickness": 0.069
+        },
+        "rearCamera": {
+          "ringsX": 0.66,
+          "rings": [
+            {
+              "y": 1.826,
+              "r": 0.224,
+              "pupil": 0.4
+            },
+            {
+              "y": 1.329,
+              "r": 0.224,
+              "pupil": 0.47
+            },
+            {
+              "y": 0.833,
+              "r": 0.224,
+              "pupil": 0.3
+            },
+            {
+              "x": 0.169,
+              "y": 1.826,
+              "r": 0.128,
+              "h": 0.038,
+              "pupil": 0.34,
+              "collar": 0.86
+            },
+            {
+              "x": 0.169,
+              "y": 1.329,
+              "r": 0.128,
+              "h": 0.038,
+              "pupil": 0.34,
+              "collar": 0.86
+            }
+          ],
+          "flash": {
+            "x": 0.169,
+            "y": 1.576,
+            "r": 0.058
+          },
+          "island": {
+            "x": 0.66,
+            "y": 1.329,
+            "width": 0.584,
+            "height": 1.576,
+            "radius": 0.292,
+            "raise": 0.032
+          },
+          "ringHeight": 0.089
+        },
+        "bottomEdge": {
+          "usb": {
+            "x": 0,
+            "width": 0.251,
+            "height": 0.087
+          },
+          "speaker": {
+            "x": -0.522,
+            "width": 0.284,
+            "height": 0.038
+          },
+          "mics": [
+            {
+              "x": 0.194,
+              "r": 0.015
+            }
+          ],
+          "sim": {
+            "x": 0.467,
+            "width": 0.398,
+            "height": 0.071
+          },
+          "penCap": {
+            "x": -0.9,
+            "r": 0.073
+          }
+        },
+        "antennaLines": [
+          1.39,
+          -1.69
+        ],
+        "logo": {
+          "y": -1.389,
+          "width": 0.641,
+          "height": 0.098
+        }
+      },
+      "sourceMeshes": 72,
+      "sourceMaterials": 72,
+      "tintedMaterials": 27
+    },
+    {
+      "id": "iphone-18-pro",
+      "name": "iPhone 18 Pro",
+      "kind": "iphone",
+      "variant": "18pro",
+      "mm": {
+        "width": 71.9,
+        "height": 150,
+        "depth": 8.75
+      },
+      "file": "iphone-18-pro.4a2d488dde.glb",
+      "bytes": 629652,
+      "spec": {
+        "body": {
+          "width": 1.935,
+          "height": 4.038,
+          "depth": 0.2355,
+          "radius": 0.34,
+          "bevel": 0.02
+        },
+        "glass": {
+          "width": 1.875,
+          "height": 3.978,
+          "radius": 0.3
+        },
+        "display": {
+          "width": 1.8,
+          "height": 3.9134,
+          "radius": 0.28
+        },
+        "island": {
+          "width": 0.419,
+          "height": 0.16,
+          "offsetY": 0.1435
+        },
+        "resolution": 402,
+        "buttons": [
+          {
+            "edge": "left",
+            "y": 1.159,
+            "length": 0.179
+          },
+          {
+            "edge": "left",
+            "y": 0.802,
+            "length": 0.284
+          },
+          {
+            "edge": "left",
+            "y": 0.447,
+            "length": 0.284
+          },
+          {
+            "edge": "right",
+            "y": 0.629,
+            "length": 0.454
+          },
+          {
+            "edge": "right",
+            "y": -0.797,
+            "length": 0.458,
+            "flush": true
+          }
+        ],
+        "buttonProfile": {
+          "protrusion": 0.011,
+          "thickness": 0.072
+        },
+        "rearCamera": {
+          "style": "bar",
+          "frame": {
+            "x": 0,
+            "y": 1.4167,
+            "width": 1.895,
+            "height": 1.1647,
+            "radius": 0.269,
+            "raise": 0.0748,
+            "wall": 0.05
+          },
+          "ringFinish": "matte",
+          "ringCollar": 0.86,
+          "lenses": [
+            {
+              "x": 0.5802,
+              "y": 1.6321,
+              "r": 0.2232,
+              "h": 0.0568,
+              "pupil": 0.28,
+              "bore": 0.59,
+              "glint": "#5a3f7a"
+            },
+            {
+              "x": 0.5802,
+              "y": 1.1142,
+              "r": 0.2232,
+              "h": 0.0568,
+              "pupil": 0.3,
+              "bore": 0.59,
+              "glint": "#6a3f70",
+              "iris": 6
+            },
+            {
+              "x": 0.0925,
+              "y": 1.3733,
+              "r": 0.2232,
+              "h": 0.0568,
+              "pupil": 0.4,
+              "bore": 0.51,
+              "glint": "#443f7a"
+            }
+          ],
+          "flash": {
+            "x": -0.5949,
+            "y": 1.647,
+            "r": 0.0929
+          },
+          "dots": [
+            {
+              "x": -0.5949,
+              "y": 1.0994,
+              "r": 0.0929,
+              "kind": "sensor"
+            },
+            {
+              "x": -0.5949,
+              "y": 1.3733,
+              "r": 0.0155,
+              "kind": "mic"
+            }
+          ]
+        },
+        "backWindow": {
+          "y": -0.5929,
+          "width": 1.7243,
+          "height": 2.6417,
+          "radius": 0.4307
+        },
+        "bottomEdge": {
+          "usb": {
+            "x": 0,
+            "width": 0.239,
+            "height": 0.073
+          },
+          "screws": [
+            {
+              "x": 0.183,
+              "r": 0.02
+            },
+            {
+              "x": -0.183,
+              "r": 0.02
+            }
+          ],
+          "speakers": [
+            {
+              "x": -0.552,
+              "r": 0.024
+            },
+            {
+              "x": -0.485,
+              "r": 0.024
+            },
+            {
+              "x": -0.425,
+              "r": 0.024
+            },
+            {
+              "x": -0.358,
+              "r": 0.024
+            },
+            {
+              "x": -0.283,
+              "r": 0.024
+            },
+            {
+              "x": -0.231,
+              "r": 0.024
+            },
+            {
+              "x": 0.312,
+              "r": 0.024
+            },
+            {
+              "x": 0.374,
+              "r": 0.024
+            },
+            {
+              "x": 0.436,
+              "r": 0.024
+            },
+            {
+              "x": 0.503,
+              "r": 0.024
+            },
+            {
+              "x": 0.573,
+              "r": 0.024
+            },
+            {
+              "x": 0.63,
+              "r": 0.024
+            }
+          ]
+        },
+        "antennaLines": [
+          1.62,
+          -1.62
+        ],
+        "logo": {
+          "y": -0.5464,
+          "width": 0.4393,
+          "height": 0.5394
+        }
+      },
+      "sourceMeshes": 68,
+      "sourceMaterials": 68,
+      "tintedMaterials": 14
+    },
+    {
+      "id": "galaxy-s26",
+      "name": "Galaxy S26",
+      "kind": "galaxy",
+      "variant": "s26",
+      "mm": {
+        "width": 71.7,
+        "height": 149.6,
+        "depth": 7.2
+      },
+      "file": "galaxy-s26.5ee9882bda.glb",
+      "bytes": 313096,
+      "spec": {
+        "body": {
+          "width": 1.956,
+          "height": 4.081,
+          "depth": 0.196,
+          "radius": 0.19,
+          "bevel": 0.02
+        },
+        "glass": {
+          "width": 1.888,
+          "height": 4.021,
+          "radius": 0.138
+        },
+        "display": {
+          "width": 1.829,
+          "height": 3.962,
+          "radius": 0.129
+        },
+        "punchHole": {
+          "radius": 0.05,
+          "offsetY": 0.103
+        },
+        "resolution": 360,
+        "buttons": [
+          {
+            "y": 1.064,
+            "length": 0.535
+          },
+          {
+            "y": 0.36,
+            "length": 0.327
+          }
+        ],
+        "buttonProfile": {
+          "protrusion": 0.012,
+          "thickness": 0.068
+        },
+        "rearCamera": {
+          "ringsX": 0.584,
+          "rings": [
+            {
+              "y": 1.647,
+              "r": 0.201,
+              "pupil": 0.38
+            },
+            {
+              "y": 1.21,
+              "r": 0.201,
+              "pupil": 0.47
+            },
+            {
+              "y": 0.774,
+              "r": 0.201,
+              "pupil": 0.34
+            }
+          ],
+          "ringFinish": "gunmetal",
+          "ringCollar": 0.9,
+          "flash": {
+            "x": 0.169,
+            "y": 1.413,
+            "r": 0.062
+          },
+          "island": {
+            "x": 0.584,
+            "y": 1.21,
+            "width": 0.527,
+            "height": 1.402,
+            "radius": 0.2635,
+            "raise": 0.03
+          },
+          "ringHeight": 0.042
+        },
+        "bottomEdge": {
+          "usb": {
+            "x": 0,
+            "width": 0.251,
+            "height": 0.087
+          },
+          "speaker": {
+            "x": 0.449,
+            "width": 0.465,
+            "height": 0.038
+          },
+          "mics": [
+            {
+              "x": -0.189,
+              "r": 0.015
+            },
+            {
+              "x": 0.169,
+              "r": 0.015
+            }
+          ],
+          "sim": {
+            "x": -0.535,
+            "width": 0.374,
+            "height": 0.071
+          }
+        },
+        "antennaLines": [
+          1.71,
+          -1.47
+        ],
+        "logo": {
+          "y": -1.186,
+          "width": 0.634,
+          "height": 0.095
+        }
+      },
+      "sourceMeshes": 51,
+      "sourceMaterials": 51,
+      "tintedMaterials": 6
+    }
+  ],
+  "lighting": {
+    "file": "original-studio.hdr.gz",
+    "width": 768,
+    "height": 1024,
+    "bytes": 68257
+  }
+}

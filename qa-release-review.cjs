@@ -1,0 +1,56 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const output=process.env.QA_OUTPUT || path.join(__dirname,'screenshots/release-review');
+(async()=>{
+  fs.mkdirSync(output,{recursive:true});
+  const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
+    const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(process.env.QA_URL || 'http://127.0.0.1:8877/',{waitUntil:'domcontentloaded'});
+    await page.waitForFunction(()=>window.LT_MESH&&window.LT_PETS);
+    const pet=page.locator('#stage-pet');
+    const before=await pet.boundingBox();
+    await page.mouse.move(before.x+32,before.y+32);await page.mouse.down();
+    await page.mouse.move(1350,750,{steps:15});await page.mouse.up();
+    assert.equal(await pet.getAttribute('data-user-moved'),'1');
+    await page.setViewportSize({width:600,height:1100});
+    await page.waitForFunction(()=>document.getElementById('stage-pet').getBoundingClientRect().right<=innerWidth);
+    const after=await pet.boundingBox();
+    await page.screenshot({path:path.join(output,'pet-after-resize.png')});
+    assert(after.x>=0&&after.x+after.width<=600,'A dragged pet must remain reachable after narrowing the window: '+JSON.stringify(after));
+    // Many tiny moves must count as one drag, rather than opening the tone picker.
+    await page.mouse.move(after.x+32,after.y+32);await page.mouse.down();
+    for(let i=1;i<=15;i++)await page.mouse.move(after.x+32-i,after.y+32);
+    await page.mouse.up();
+    assert.equal(await page.locator('.finish-popover.is-open').count(),0,'Slow pet dragging must not activate its click');
+    const current=await pet.boundingBox();
+    await page.mouse.move(current.x+32,current.y+32);await page.mouse.down();
+    await page.mouse.move(0,500,{steps:8});
+    await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+    await page.mouse.up();
+    assert(!(await pet.evaluate(el=>el.classList.contains('is-dragging'))),'Losing focus must release pet dragging');
+    const edge=await pet.boundingBox();assert(edge.x>=0&&edge.x+edge.width<=600);
+    await page.setViewportSize({width:390,height:844});await pet.waitFor({state:'hidden'});
+    await page.setViewportSize({width:1440,height:1100});await page.waitForFunction(()=>window.LT_MESH);
+    const recovered=await pet.boundingBox();assert(recovered.x>=0&&recovered.x+recovered.width<=1440);
+    const forced=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
+    forced.on('pageerror',error=>errors.push(error.message));
+    let release;
+    const gate=new Promise(resolve=>release=resolve);
+    await forced.route('**/*.glb',async route=>{await gate;await route.continue().catch(()=>{});});
+    const forcedUrl=new URL(process.env.QA_URL || 'http://127.0.0.1:8877/');forcedUrl.searchParams.set('forceShell','1');
+    await forced.goto(forcedUrl.href,{waitUntil:'domcontentloaded'});
+    await forced.waitForFunction(()=>document.querySelector('canvas.device-webgl'));
+    await forced.setViewportSize({width:390,height:844});
+    await forced.waitForFunction(()=>innerWidth===390&&!window.LT_SHELL.isRealPhone());
+    release();
+    await forced.waitForFunction(()=>window.LT_MESH,null,{timeout:15000});
+    assert.equal(await forced.locator('canvas.device-webgl').count(),1);
+    assert.deepEqual(errors,[]);
+    const result={dragResize:true,slowDrag:true,focusLoss:true,edgeBounds:true,mobileRoundTrip:true,pendingForcedShellResize:true,errors};
+    fs.writeFileSync(path.join(output,'result.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1});

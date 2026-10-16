@@ -1,300 +1,290 @@
 import * as THREE from 'three';
+import {GLTFLoader,MeshoptDecoder} from '../vendor/device-runtime/loader.js?v=20261016-appearance1';
+import {railColor} from '../vendor/device-runtime/finish.js?v=20261016-appearance1';
 
-const WIDTH = 422, HEIGHT = 876, SCREEN_W = 390, SCREEN_H = 844;
-const MODELS = {
-  island: { radius: 52, screenRadius: 40, depth: 36 },
-  notch: { radius: 48, screenRadius: 36, depth: 38 },
-  hole: { radius: 34, screenRadius: 24, depth: 32 },
-  clean: { radius: 44, screenRadius: 32, depth: 30 },
-};
-const FINISHES = {
-  obsidian: '#1a1c20', sterling: '#c5cad3', champagne: '#c9a86a',
-  cobalt: '#1e3a6e', crimson: '#8b1e2d', glacier: '#7eb8d4',
-  amethyst: '#5b3d8a', graphite: '#4a4d52', pearl: '#e8e4dc', sand: '#b5a894',
-};
-
-function roundedShape(w, h, r) {
-  const s = new THREE.Shape();
-  const x = -w / 2, y = -h / 2;
-  s.moveTo(x + r, y);
-  s.lineTo(x + w - r, y);
-  s.quadraticCurveTo(x + w, y, x + w, y + r);
-  s.lineTo(x + w, y + h - r);
-  s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  s.lineTo(x + r, y + h);
-  s.quadraticCurveTo(x, y + h, x, y + h - r);
-  s.lineTo(x, y + r);
-  s.quadraticCurveTo(x, y, x + r, y);
-  return s;
+const FINISHES = new Map(window.LT_PALACE.FINISH_IDS.map(({id,swatch})=>[id,swatch]));
+const DEFAULT_FINISH = window.LT_PALACE.FINISH_IDS[0].swatch;
+let lightingPromise;
+export function loadStudioLighting(){
+  if(!lightingPromise) lightingPromise=(async()=>{
+    const meta=window.LT_DEVICES.lighting;
+    const response=await fetch(new URL('../assets/devices/'+meta.file,import.meta.url));
+    if(!response.ok) throw Error('Studio lighting '+response.status);
+    const decompressed=response.body.pipeThrough(new DecompressionStream('gzip'));
+    const buffer=await new Response(decompressed).arrayBuffer();
+    if(buffer.byteLength!==meta.width*meta.height*8) throw Error('Invalid lighting atlas');
+    return {...meta,pixels:new Uint16Array(buffer)};
+  })().catch(error=>{lightingPromise=null;throw error;});
+  return lightingPromise;
 }
-
-function slab(w, h, r, depth, bevel, material) {
-  const geom = new THREE.ExtrudeGeometry(roundedShape(w - bevel * 2, h - bevel * 2, r - bevel), {
-    depth: depth - bevel * 2, bevelEnabled: bevel > 0, bevelSegments: 4,
-    steps: 1, bevelSize: bevel, bevelThickness: bevel, curveSegments: 20,
-  });
-  geom.translate(0, 0, -depth + bevel);
-  return new THREE.Mesh(geom, material);
+function screenMatrix(points,width,height){
+  const [a,b,c,d]=points;
+  const dx1=b.x-c.x,dx2=d.x-c.x,dy1=b.y-c.y,dy2=d.y-c.y;
+  const dx3=a.x-b.x+c.x-d.x,dy3=a.y-b.y+c.y-d.y;
+  const determinant=dx1*dy2-dx2*dy1;
+  const g=(dx3*dy2-dx2*dy3)/determinant,h=(dx1*dy3-dx3*dy1)/determinant;
+  return 'matrix3d('+[
+    (b.x-a.x+g*b.x)/width,(b.y-a.y+g*b.y)/width,0,g/width,
+    (d.x-a.x+h*d.x)/height,(d.y-a.y+h*d.y)/height,0,h/height,
+    0,0,1,0,a.x,a.y,0,1,
+  ].join(',')+')';
 }
-
-// Homography from native UI coordinates to the four projected screen corners.
-// Semantic TL/TR/BR/BL never changes with rotation, avoiding mirrored or twisted UI.
-function screenMatrix(points) {
-  const [a, b, c, d] = points;
-  const dx1 = b.x - c.x, dx2 = d.x - c.x;
-  const dy1 = b.y - c.y, dy2 = d.y - c.y;
-  const dx3 = a.x - b.x + c.x - d.x, dy3 = a.y - b.y + c.y - d.y;
-  const determinant = dx1 * dy2 - dx2 * dy1;
-  const g = (dx3 * dy2 - dx2 * dy3) / determinant;
-  const h = (dx1 * dy3 - dx3 * dy1) / determinant;
-  const m = [
-    (b.x - a.x + g * b.x) / SCREEN_W, (b.y - a.y + g * b.y) / SCREEN_W, 0, g / SCREEN_W,
-    (d.x - a.x + h * d.x) / SCREEN_H, (d.y - a.y + h * d.y) / SCREEN_H, 0, h / SCREEN_H,
-    0, 0, 1, 0, a.x, a.y, 0, 1,
-  ];
-  return 'matrix3d(' + m.join(',') + ')';
-}
-
-// Small procedural studio environment: broad softboxes give metal continuous reflections.
-// No external HDR, model, texture, screenshot capture or network request is needed.
-function studioEnvironment(renderer) {
-  const studio = new THREE.Scene();
-  studio.background = new THREE.Color('#69717f');
-  const panels = [
-    [-450, 200, 500, 200, 1100, '#ffffff', 4],
-    [500, 80, 200, 100, 950, '#d8e7ff', 3],
-    [0, 750, -150, 950, 200, '#ffffff', 5],
-    [-250, -500, -500, 600, 250, '#c6cbd4', 1.5],
-  ];
-  for (const [x, y, z, w, h, color, strength] of panels) {
-    const material = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(strength), side: THREE.DoubleSide });
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(w, h), material);
-    panel.position.set(x, y, z);
-    panel.lookAt(0, 0, 0);
-    studio.add(panel);
-  }
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const environment = pmrem.fromScene(studio, 0.035, 1, 2000);
-  studio.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
-  pmrem.dispose();
-  return environment;
-}
-
-export function createDeviceMesh({ mount, screenEl, unit, rig }) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1;
-  renderer.domElement.className = 'device-webgl';
-  renderer.domElement.style.filter = 'drop-shadow(0 24px 24px #00000055)';
+export function createDeviceMesh({mount,screenEl,unit,rig,lightingImage,initialModel}){
+  performance.mark('lt-webgl-context-start');
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});
+  performance.mark('lt-webgl-context-ready');
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.setClearColor(0,0);
+  renderer.domElement.className='device-webgl';
+  renderer.domElement.style.filter='drop-shadow(0 24px 24px #00000055)';
   mount.appendChild(renderer.domElement);
-  const scene = new THREE.Scene();
-  const environment = studioEnvironment(renderer);
-  scene.environment = environment.texture;
-  const camera = new THREE.PerspectiveCamera(30, 1, 1, 5000);
-  camera.position.set(0, 0, 2400);
-  const key = new THREE.DirectionalLight('#fff8ef', 2.2);
-  key.position.set(-500, 800, 1500);
-  scene.add(key, new THREE.HemisphereLight('#edf3ff', '#404753', 1.4));
-  const fill = new THREE.DirectionalLight('#b8d4ff', 1);
-  fill.position.set(500, -100, 700);
-  scene.add(fill);
-
-  const root = new THREE.Group();
-  root.rotation.order = 'XYZ';
-  scene.add(root);
-  const metal = new THREE.MeshPhysicalMaterial({ color: FINISHES.obsidian, metalness: 0.92, roughness: 0.28, envMapIntensity: 1.2, clearcoat: 0.3, clearcoatRoughness: 0.24 });
-  const trim = new THREE.MeshPhysicalMaterial({ color: '#abb1ba', metalness: 1, roughness: 0.18, envMapIntensity: 1.2 });
-  const glass = new THREE.MeshPhysicalMaterial({ color: '#080a0e', metalness: 0.05, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.12 });
-  const back = new THREE.MeshPhysicalMaterial({ color: FINISHES.obsidian, metalness: 0.3, roughness: 0.42, clearcoat: 0.5 });
-  const antenna = new THREE.MeshStandardMaterial({ color: '#9fa6af', metalness: 0.1, roughness: 0.7 });
-  const lens = new THREE.MeshPhysicalMaterial({ color: '#06101c', metalness: 0.35, roughness: 0.12, clearcoat: 1 });
-  const materials = [metal, trim, glass, back, antenna, lens];
-  const screenLayer = document.createElement('div');
-  screenLayer.className = 'device-screen-layer';
-  rig.appendChild(screenLayer);
-
-  let modelId, finishId, disposed = false, raf = 0;
-  let targetX = 0, targetY = 0, viewX = 0, viewY = 0;
-  let lastTime = 0, dirty = true, lastWidth = 0, lastHeight = 0;
-  let projection;
-  let reduced = matchMedia('(prefers-reduced-motion: reduce)');
-
-  function clearGeometry() {
-    root.traverse(o => o.geometry?.dispose());
-    root.clear();
-  }
-
-  function buildModel(id) {
-    const model = MODELS[id] || MODELS.island;
-    clearGeometry();
-    root.add(slab(WIDTH, HEIGHT, model.radius, model.depth, 3.2, metal));
-    const lip = slab(WIDTH - 8, HEIGHT - 8, model.radius - 4, 0.7, 0.2, trim);
-    lip.position.z = 0.9;
-    root.add(lip);
-    const front = slab(WIDTH - 10, HEIGHT - 10, model.radius - 5, 0.4, 0.1, glass);
-    front.position.z = 1.4;
-    root.add(front);
-    const rear = slab(WIDTH - 6, HEIGHT - 6, model.radius - 3, 1.5, 0.5, back);
-    rear.rotation.y = Math.PI;
-    rear.position.z = -model.depth - 0.3;
-    root.add(rear);
-    // Recessed antenna lines and separate mechanical side keys.
-    for (const side of [-1, 1]) {
-      for (const y of [-HEIGHT * 0.34, HEIGHT * 0.34]) {
-        const band = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, model.depth - 7), antenna);
-        band.position.set(side * (WIDTH / 2 - 0.2), y, -model.depth / 2);
-        root.add(band);
+  const scene=new THREE.Scene();
+  const environment=new THREE.DataTexture(lightingImage.pixels,lightingImage.width,lightingImage.height,THREE.RGBAFormat,THREE.HalfFloatType);
+  environment.mapping=THREE.CubeUVReflectionMapping;
+  environment.minFilter=environment.magFilter=THREE.LinearFilter;
+  environment.generateMipmaps=false;environment.needsUpdate=true;
+  scene.environment=environment;
+  // Upstream studio's direct lights; the HDR atlas preserves its Lightformers.
+  scene.add(new THREE.AmbientLight('white',.4));
+  const key=new THREE.DirectionalLight('white',.6);
+  key.position.set(1200,1600,1200);scene.add(key);
+  // Physical details are separated by fractions of a millimeter. A near plane
+  // sized to this scene keeps those surfaces from fighting in the depth buffer.
+  const camera=new THREE.PerspectiveCamera(30,1,100,5000);
+  camera.position.set(0,0,2400);
+  const root=new THREE.Group();root.rotation.order='XYZ';scene.add(root);
+  const screenLayer=document.createElement('div');
+  screenLayer.className='device-screen-layer';rig.appendChild(screenLayer);
+  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const downloads=new AbortController();
+  const cache=new Map(),pendingLoads=new Map();
+  const color=new THREE.Color(DEFAULT_FINISH),targetColor=color.clone();
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  let current,requestedId,modelId,finishId,modelVersion=0,currentLoad;
+  let disposed=false,active=false,preparing=true,raf=0,dirty=true,lastTime=0,inView=true;
+  let slowFrames=0,lastLayout,forceDraw=true;
+  let targetX=0,targetY=0,viewX=0,viewY=0,renderCount=0,lastWidth=0,lastHeight=0;
+  let projection,projectionOrigin;
+  function releaseAsset(asset){
+    const geometries=new Set(),materials=new Set(),textures=new Set();
+    asset.object.traverse(node=>{
+      if(node.geometry) geometries.add(node.geometry);
+      for(const material of [].concat(node.material||[])){
+        materials.add(material);
+        for(const value of Object.values(material)) if(value?.isTexture) textures.add(value);
       }
-      const keys = side < 0 ? [[220, 28], [135, 57], [55, 57]] : [[105, 82]];
-      for (const [y, h] of keys) {
-        const button = slab(5, h, 2.4, 16, 0.8, metal);
-        button.position.set(side * (WIDTH / 2 + 1), y, -model.depth / 2 + 8);
-        root.add(button);
-      }
-    }
-    const cameraPlate = slab(150, 166, 28, 7, 2, metal);
-    cameraPlate.rotation.y = Math.PI;
-    cameraPlate.position.set(-104, 316, -model.depth - 1);
-    root.add(cameraPlate);
-    for (const [x, y] of [[-140, 356], [-70, 316], [-140, 276]]) {
-      for (const [radius, depth, mat] of [[27, 6, trim], [23, 7, glass], [15, 7.5, lens]]) {
-        const eye = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, depth, 48), mat);
-        eye.rotation.x = Math.PI / 2;
-        eye.position.set(x, y, -model.depth - 8);
-        root.add(eye);
-      }
-    }
-    screenEl.dataset.model = id;
-    screenEl.style.setProperty('--live-screen-radius', model.screenRadius + 'px');
-  }
-
-  function setModelUiId(id) {
-    id = MODELS[id] ? id : 'island';
-    if (id === modelId) return;
-    modelId = id;
-    buildModel(id);
-    invalidate();
-  }
-
-  function setFinish(id) {
-    if (finishId === id) return;
-    finishId = id;
-    const color = new THREE.Color(FINISHES[id] || FINISHES.obsidian);
-    metal.color.copy(color);
-    back.color.copy(color);
-    trim.color.copy(color).lerp(new THREE.Color('#eef2f7'), 0.28);
-    invalidate();
-  }
-
-  function setRotation(x, y) {
-    const nextX = THREE.MathUtils.clamp(Number(x) || 0, -68, 68);
-    const nextY = THREE.MathUtils.clamp(Number(y) || 0, -80, 80);
-    if (nextX === targetX && nextY === targetY) return;
-    targetX = nextX;
-    targetY = nextY;
-    invalidate();
-  }
-
-  function layout() {
-    const rect = mount.getBoundingClientRect();
-    const box = unit.getBoundingClientRect();
-    const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
-    if (w !== lastWidth || h !== lastHeight) {
-      renderer.setSize(w, h, false);
-      lastWidth = w; lastHeight = h;
-    }
-    const centerX = box.left + box.width / 2 - rect.left;
-    const centerY = box.top + box.height / 2 - rect.top;
-    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(h / (2 * camera.position.z)));
-    camera.aspect = w / h;
-    camera.setViewOffset(w, h, w / 2 - centerX, h / 2 - centerY, w, h);
-    camera.updateProjectionMatrix();
-    root.scale.setScalar(box.width / WIDTH);
-    root.updateMatrixWorld(true);
-    camera.updateMatrixWorld(true);
-    const corners = [[-SCREEN_W / 2, SCREEN_H / 2], [SCREEN_W / 2, SCREEN_H / 2], [SCREEN_W / 2, -SCREEN_H / 2], [-SCREEN_W / 2, -SCREEN_H / 2]];
-    const points = corners.map(([x, y]) => {
-      const p = new THREE.Vector3(x, y, 1.6).applyMatrix4(root.matrixWorld).project(camera);
-      return { x: (p.x + 1) * w / 2 + rect.left + scrollX, y: (1 - p.y) * h / 2 + rect.top + scrollY };
     });
-    projection = { tl: points[0], tr: points[1], br: points[2], bl: points[3] };
-    const xs = points.map(p => p.x), ys = points.map(p => p.y);
-    projection.aabb = { left: Math.min(...xs) - scrollX, top: Math.min(...ys) - scrollY, width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
-    // Share the rig's layout origin with the canvas. The browser then moves both
-    // layers atomically when a picker animates, even between JavaScript frames.
-    const origin = screenLayer.getBoundingClientRect();
-    screenEl.style.transform = screenMatrix(points.map(p => ({
-      x: p.x - scrollX - origin.left, y: p.y - scrollY - origin.top,
-    })));
+    geometries.forEach(value=>value.dispose());materials.forEach(value=>value.dispose());textures.forEach(value=>value.dispose());
   }
-
-  function render(time) {
-    raf = 0;
-    if (disposed || document.hidden) return;
-    const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 1 / 60;
-    lastTime = time;
-    const damping = reduced.matches ? 1 : 1 - Math.exp(-19 * dt);
-    viewX += (targetX - viewX) * damping;
-    viewY += (targetY - viewY) * damping;
-    const moving = Math.abs(viewX - targetX) + Math.abs(viewY - targetY) > 0.015;
-    if (!moving) { viewX = targetX; viewY = targetY; }
-    root.rotation.x = THREE.MathUtils.degToRad(-viewX);
-    root.rotation.y = THREE.MathUtils.degToRad(viewY);
-    layout();
-    renderer.render(scene, camera);
-    dirty = false;
-    if (moving) raf = requestAnimationFrame(render);
+  function tint(asset,finish){
+    if(asset.lastTint?.equals(finish)) return;
+    (asset.lastTint ||= new THREE.Color()).copy(finish);
+    const rail=new THREE.Color(railColor('#'+finish.getHexString()));
+    for(const material of asset.tinted){
+      const spec=material.userData.ltTint;
+      material.color.copy(spec.rail?rail:finish);
+      material.color.r*=spec.multiplier[0];material.color.g*=spec.multiplier[1];material.color.b*=spec.multiplier[2];
+    }
   }
-  function invalidate() {
-    dirty = true;
-    if (!disposed && !raf && !document.hidden) raf = requestAnimationFrame(render);
+  async function loadModel(profile){
+    if(cache.has(profile.id)) return cache.get(profile.id);
+    if(pendingLoads.has(profile.id)) return pendingLoads.get(profile.id);
+    const promise=(async()=>{
+      performance.mark('lt-model-start:'+profile.id);
+      let bytes;
+      if(initialModel?.id===profile.id){
+        bytes=await initialModel.bytes;
+        initialModel=null;
+      }else{
+        const response=await fetch(profile.asset,{signal:downloads.signal});
+        if(!response.ok) throw Error('Handset '+response.status);
+        bytes=await response.arrayBuffer();
+      }
+      if(disposed) throw Error('Renderer disposed during download');
+      const gltf=await loader.parseAsync(bytes,new URL('.',new URL(profile.asset,location.href)).href);
+      performance.mark('lt-model-decoded:'+profile.id);
+      const object=gltf.scene;
+      object.scale.set(profile.width/profile.sourceBody.width,profile.height/profile.sourceBody.height,profile.depth/profile.sourceBody.depth);
+      object.position.z=-profile.depth/2;
+      const materials=new Set(),tinted=[];
+      object.traverse(node=>{
+        if(!node.isMesh) return;
+        node.frustumCulled=false;
+        for(const material of [].concat(node.material)){
+          if(materials.has(material)) continue;
+          materials.add(material);
+          const render=material.userData.ltRender;
+          if(render){
+            if(render.envMapIntensity!==undefined) material.envMapIntensity=render.envMapIntensity;
+            material.blending=render.blending;material.depthWrite=render.depthWrite;material.side=render.side;
+          }
+          if(material.userData.ltTint) tinted.push(material);
+          material.needsUpdate=true;
+        }
+      });
+      const asset={object,profile,materials,tinted};
+      tint(asset,color);
+      if(disposed){releaseAsset(asset);throw Error('Renderer disposed during model load');}
+      cache.set(profile.id,asset);
+      // Cache only this bounded handset catalog; no speculative model requests.
+      return asset;
+    })().finally(()=>pendingLoads.delete(profile.id));
+    pendingLoads.set(profile.id,promise);
+    return promise;
   }
-  function visibility() { if (!document.hidden) { lastTime = 0; invalidate(); } }
-  const observer = new ResizeObserver(() => {
-    if (disposed || document.hidden) return;
-    // Keep the moving body and its live screen together before browser paint.
-    layout();
-    renderer.render(scene, camera);
+  function configureScreen(profile){
+    screenEl.dataset.model=profile.id;screenEl.dataset.topChrome=profile.topChrome;
+    screenEl.style.setProperty('--live-screen-width',profile.uiWidth+'px');
+    screenEl.style.setProperty('--live-screen-height',profile.uiHeight+'px');
+    screenEl.style.setProperty('--live-screen-radius',profile.sourceDisplay.radius/profile.sourceDisplay.width*profile.uiWidth+'px');
+    const pxPerMm=profile.uiWidth/(profile.displayWidth/window.LT_DEVICES.scale);
+    screenEl.style.setProperty('--live-cutout-width',profile.cutout.width*pxPerMm+'px');
+    screenEl.style.setProperty('--live-cutout-height',profile.cutout.height*pxPerMm+'px');
+    screenEl.style.setProperty('--live-cutout-top',(profile.cutout.offset-profile.cutout.height/2)*pxPerMm+'px');
+  }
+  function setModelUiId(id){
+    const profile=window.LT_DEVICES.get(id);
+    if(requestedId===profile.id) return currentLoad || Promise.resolve();
+    requestedId=profile.id;
+    const version=++modelVersion;
+    rig.classList.add('is-model-loading');unit.setAttribute('aria-busy','true');
+    currentLoad=(async()=>{
+      try{
+        const asset=await loadModel(profile);
+        if(disposed || version!==modelVersion) return;
+        tint(asset,color);
+        if(!asset.compiled){
+          await renderer.compileAsync(asset.object,camera,scene);
+          asset.compiled=true;
+        }
+        performance.mark('lt-model-compiled:'+profile.id);
+        if(disposed || version!==modelVersion) return;
+        root.clear();root.add(asset.object);current=asset;modelId=profile.id;
+        forceDraw=true;
+        configureScreen(profile);
+        invalidate();
+      }catch(error){
+        if(!disposed && version===modelVersion){
+          requestedId=null;
+          screenEl.dispatchEvent(new CustomEvent('lt-model-load-error',{bubbles:true,detail:{id:profile.id,message:error.message}}));
+          throw error;
+        }
+      }finally{
+        if(version===modelVersion){rig.classList.remove('is-model-loading');unit.removeAttribute('aria-busy');}
+      }
+    })();
+    return currentLoad;
+  }
+  function setFinish(id){
+    if(finishId===id) return;
+    finishId=id;targetColor.set(FINISHES.get(id)||DEFAULT_FINISH);invalidate();
+  }
+  function setRotation(x,y){
+    const nextX=THREE.MathUtils.clamp(Number(x)||0,-68,68),nextY=THREE.MathUtils.clamp(Number(y)||0,-260,260);
+    if(nextX===targetX&&nextY===targetY) return;
+    targetX=nextX;targetY=nextY;invalidate();
+  }
+  function layout(){
+    if(!current) return;
+    const model=current.profile,rect=mount.getBoundingClientRect(),box=unit.getBoundingClientRect();
+    const w=Math.max(1,rect.width),h=Math.max(1,rect.height);
+    const centerX=box.left+box.width/2-rect.left,centerY=box.top+box.height/2-rect.top;
+    const signature=[...[w,h,box.width,centerX,centerY].map(value=>Math.round(value*100)/100),viewX,viewY,modelId,renderer.getPixelRatio()];
+    if(lastLayout && signature.every((value,index)=>value===lastLayout[index])) return false;
+    lastLayout=signature;
+    if(w!==lastWidth||h!==lastHeight){renderer.setSize(w,h,false);lastWidth=w;lastHeight=h;}
+    camera.fov=THREE.MathUtils.radToDeg(2*Math.atan(h/(2*camera.position.z)));camera.aspect=w/h;
+    camera.setViewOffset(w,h,w/2-centerX,h/2-centerY,w,h);camera.updateProjectionMatrix();
+    root.scale.setScalar(box.width/model.width);root.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+    const sw=model.displayWidth,sh=model.displayHeight;
+    const points=[[-sw/2,sh/2],[sw/2,sh/2],[sw/2,-sh/2],[-sw/2,-sh/2]].map(([x,y])=>{
+      const p=new THREE.Vector3(x,y,model.displayZ).applyMatrix4(root.matrixWorld).project(camera);
+      return {x:(p.x+1)*w/2+rect.left+scrollX,y:(1-p.y)*h/2+rect.top+scrollY};
+    });
+    projection={tl:points[0],tr:points[1],br:points[2],bl:points[3]};
+    const rigRect=rig.getBoundingClientRect();projectionOrigin={x:rigRect.left+scrollX,y:rigRect.top+scrollY};
+    const origin=screenLayer.getBoundingClientRect();
+    if(active){
+      const rearFacing=Math.cos(THREE.MathUtils.degToRad(viewY))<=.06;
+      screenEl.style.visibility=rearFacing?'hidden':'';screenEl.inert=rearFacing;
+      if(!rearFacing) screenEl.style.transform=screenMatrix(points.map(p=>({x:p.x-scrollX-origin.left,y:p.y-scrollY-origin.top})),model.uiWidth,model.uiHeight);
+    }
+    return true;
+  }
+  function render(time){
+    raf=0;if(disposed||document.hidden||!inView||!active||!current) return;
+    const dt=lastTime?Math.min((time-lastTime)/1000,.05):1/60;lastTime=time;
+    const damping=reduced.matches?1:1-Math.exp(-(document.body.classList.contains('is-shell-orbiting')?34:22)*dt);
+    viewX+=(targetX-viewX)*damping;viewY+=(targetY-viewY)*damping;
+    const moving=Math.abs(viewX-targetX)+Math.abs(viewY-targetY)>.015;
+    if(!moving){viewX=targetX;viewY=targetY;}
+    color.lerp(targetColor,reduced.matches?1:1-Math.exp(-20*dt));
+    const colorMoving=(color.r-targetColor.r)**2+(color.g-targetColor.g)**2+(color.b-targetColor.b)**2>.000004;
+    if(!colorMoving) color.copy(targetColor);
+    const colorChanged=!current.lastTint?.equals(color);
+    tint(current,color);
+    // Adapt only after sustained slow animation frames; HTML stays native/sharp.
+    slowFrames=(moving||colorMoving) && dt>.026 ? slowFrames+1 : Math.max(0,slowFrames-1);
+    if(slowFrames>=12 && renderer.getPixelRatio()>1){
+      renderer.setPixelRatio(Math.max(1,renderer.getPixelRatio()-.25));
+      slowFrames=0;forceDraw=true;
+    }
+    root.rotation.x=THREE.MathUtils.degToRad(-viewX);root.rotation.y=THREE.MathUtils.degToRad(viewY);
+    const layoutChanged=layout();
+    if(forceDraw||colorChanged||layoutChanged){renderer.render(scene,camera);renderCount++;forceDraw=false;}
+    dirty=false;
+    if(moving||colorMoving) raf=requestAnimationFrame(render);
+  }
+  function invalidate(){
+    dirty=true;
+    if(!disposed&&!preparing&&active&&inView&&!raf&&!document.hidden){lastTime=0;raf=requestAnimationFrame(render);}
+  }
+  function pause(){cancelAnimationFrame(raf);raf=0;lastTime=0;slowFrames=0;}
+  function visibility(){if(document.hidden) pause();else invalidate();}
+  const observer=new ResizeObserver(invalidate);
+  const intersection=new IntersectionObserver(entries=>{
+    inView=entries[0].isIntersecting;
+    if(inView) invalidate();else pause();
   });
-  observer.observe(rig);
-  observer.observe(unit);
-  observer.observe(document.querySelector('.stage'));
+  intersection.observe(rig);
+  observer.observe(rig);observer.observe(unit);observer.observe(document.querySelector('.stage'));
   document.fonts?.ready.then(invalidate);
-  window.addEventListener('resize', invalidate);
-  window.addEventListener('scroll', invalidate, { passive: true });
-  document.addEventListener('visibilitychange', visibility);
-  renderer.domElement.addEventListener('webglcontextlost', event => {
-    event.preventDefault();
-    screenEl.dispatchEvent(new CustomEvent('lt-3d-context-lost', { bubbles: true }));
-  });
-  screenLayer.appendChild(screenEl);
-  screenEl.classList.add('is-live-3d-screen');
-  setModelUiId(unit.dataset.model);
-  setFinish(unit.dataset.shell);
-  invalidate();
-
+  window.addEventListener('resize',invalidate);window.addEventListener('scroll',invalidate,{passive:true});document.addEventListener('visibilitychange',visibility);
+  renderer.domElement.addEventListener('webglcontextlost',event=>{if(!disposed){event.preventDefault();screenEl.dispatchEvent(new CustomEvent('lt-3d-context-lost',{bubbles:true}));}});
+  setModelUiId(unit.dataset.model);setFinish(unit.dataset.shell);
+  const ready=(async()=>{
+    let load;
+    do{load=currentLoad;await load;}while(load!==currentLoad);
+    preparing=false;
+  })();
+  let released=false;
+  function release(){
+    if(released) return;released=true;
+    cache.forEach(releaseAsset);cache.clear();root.clear();environment.dispose();renderer.dispose();renderer.forceContextLoss();
+  }
   return {
-    setModelUiId, setFinish, setRotation, resize: invalidate,
-    getProjection: () => projection,
-    getOverlayMode: () => true,
-    getState: () => ({ model: modelId, finish: finishId, viewX, viewY, targetX, targetY, draws: renderer.info.render.calls, pending: !!raf, dirty }),
-    dispose() {
-      if (disposed) return;
-      disposed = true;
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-      window.removeEventListener('resize', invalidate);
-      window.removeEventListener('scroll', invalidate);
-      document.removeEventListener('visibilitychange', visibility);
-      clearGeometry();
-      materials.forEach(material => material.dispose());
-      environment.dispose();
-      renderer.dispose();
-      renderer.forceContextLoss();
-      mount.remove();
-      screenLayer.remove();
+    ready,
+    activate(){if(disposed)return;active=true;color.copy(targetColor);tint(current,color);screenLayer.appendChild(screenEl);screenEl.classList.add('is-live-3d-screen');lastLayout=null;render(performance.now());},
+    setModelUiId,setFinish,setRotation,resize:invalidate,
+    getProjection(){
+      if(!projection)return null;
+      const rect=rig.getBoundingClientRect(),dx=rect.left+scrollX-projectionOrigin.x,dy=rect.top+scrollY-projectionOrigin.y,result={};
+      for(const key of ['tl','tr','br','bl']) result[key]={x:projection[key].x+dx,y:projection[key].y+dy};
+      const xs=Object.values(result).map(p=>p.x),ys=Object.values(result).map(p=>p.y);
+      result.aabb={left:Math.min(...xs)-scrollX,top:Math.min(...ys)-scrollY,width:Math.max(...xs)-Math.min(...xs),height:Math.max(...ys)-Math.min(...ys)};
+      return result;
+    },
+    getOverlayMode:()=>true,
+    getState:()=>({model:modelId,requestedModel:requestedId,source:window.LT_DEVICES.source,dimensions:current?.profile.mm,finish:finishId,color:'#'+color.getHexString(),targetColor:'#'+targetColor.getHexString(),viewX,viewY,targetX,targetY,draws:renderer.info.render.calls,triangles:renderer.info.render.triangles,cachedModels:cache.size,pendingModels:pendingLoads.size,geometries:renderer.info.memory.geometries,textures:renderer.info.memory.textures,renderCount,pending:!!raf,dirty,inView,pixelRatio:renderer.getPixelRatio()}),
+    dispose(){
+      if(disposed)return;disposed=true;modelVersion++;pause();observer.disconnect();intersection.disconnect();
+      downloads.abort();initialModel?.abort();
+      rig.classList.remove('is-model-loading');unit.removeAttribute('aria-busy');
+      window.removeEventListener('resize',invalidate);window.removeEventListener('scroll',invalidate);document.removeEventListener('visibilitychange',visibility);
+      mount.remove();screenLayer.remove();
+      Promise.allSettled([ready,...pendingLoads.values()]).then(release);
     },
   };
 }

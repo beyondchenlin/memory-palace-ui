@@ -1,0 +1,1 @@
+import{Color as o,SRGBColorSpace as r}from"three";var c=.78,d=.35,m=.25;function a(l){let e={h:0,s:0,l:0};new o(l).getHSL(e,r);let i=e.l<.5?d:m;return`#${new o().setHSL(e.h,e.s*c,e.l+(.5-e.l)*i,r).getHexString()}`}export{a as railColor};

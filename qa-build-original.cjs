@@ -1,0 +1,86 @@
+// Reproducible offline export from the pinned upstream npm package.
+const fs=require('node:fs');
+const path=require('node:path');
+const zlib=require('node:zlib');
+const crypto=require('node:crypto');
+const esbuild=require('esbuild');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const root=__dirname;
+const generated=path.join(root,'qa-generated');
+const destination=path.join(root,'assets/devices');
+const devices=[
+  {id:'iphone-18-pro-max',name:'iPhone 18 Pro Max',kind:'iphone',variant:'18promax',mm:{width:78,height:163.4,depth:8.75}},
+  {id:'galaxy-s26-ultra',name:'Galaxy S26 Ultra',kind:'galaxy',variant:'s26ultra',mm:{width:78.1,height:163.6,depth:7.9}},
+  {id:'iphone-18-pro',name:'iPhone 18 Pro',kind:'iphone',variant:'18pro',mm:{width:71.9,height:150,depth:8.75}},
+  {id:'galaxy-s26',name:'Galaxy S26',kind:'galaxy',variant:'s26',mm:{width:71.7,height:149.6,depth:7.2}},
+];
+(async()=>{
+ fs.mkdirSync(generated,{recursive:true});fs.mkdirSync(destination,{recursive:true});
+ fs.writeFileSync(path.join(generated,'original.html'),'<html><body style="margin:0"><div id="authoring" style="width:600px;height:1000px"></div><script type="module" src="/qa-generated/original.js"></script></body></html>');
+ await esbuild.build({entryPoints:[path.join(root,'qa-original-models.jsx')],outfile:path.join(generated,'original.js'),bundle:true,format:'esm',define:{'process.env.NODE_ENV':'"production"'},plugins:[{name:'native-screen-export',setup(build){
+   build.onResolve({filter:/screen\/device-screen\.js$/},()=>({path:'native-screen',namespace:'offline'}));
+   build.onLoad({filter:/.*/,namespace:'offline'},()=>({contents:'export const DeviceScreen=()=>null; export const SCREEN_MASK_INSET=0;',loader:'js'}));
+ }}]});
+ const {NodeIO}=await import('@gltf-transform/core');
+ const {ALL_EXTENSIONS}=await import('@gltf-transform/extensions');
+ const {dedup,flatten,join,weld,meshopt}=await import('@gltf-transform/functions');
+ const {MeshoptEncoder}=await import('meshoptimizer');
+ await MeshoptEncoder.ready;
+ const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder});
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
+ const manifest={source:'area-is/react-3d-mockups',version:'0.2.0',license:'MIT',devices:[]};
+ try {
+   const page=await browser.newPage({viewport:{width:700,height:1100}});
+   page.on('pageerror',e=>console.error(e.message));
+   await page.goto('http://127.0.0.1:8877/qa-generated/original.html',{waitUntil:'domcontentloaded'});
+   await page.waitForFunction(()=>typeof window.exportOriginal==='function');
+   const targets=process.env.EXPORT_FIRST_ONLY ? devices.slice(0,1) : devices;
+   for(const device of targets) {
+     const result=await page.evaluate(config=>window.exportOriginal(config),device);
+     const document=await io.readBinary(new Uint8Array(Buffer.from(result.data,'base64')));
+     await document.transform(dedup(),flatten(),join(),weld(),meshopt({encoder:MeshoptEncoder,level:'medium'}));
+     const data=await io.writeBinary(document);
+     const file=device.id+'.'+crypto.createHash('sha256').update(data).digest('hex').slice(0,10)+'.glb';
+     fs.writeFileSync(path.join(destination,file),data);
+     manifest.devices.push({...device,file,bytes:data.length,spec:result.spec,sourceMeshes:result.meshes,sourceMaterials:result.materials,tintedMaterials:result.tinted});
+     console.log(JSON.stringify({id:device.id,bytes:data.length,meshes:result.meshes,materials:result.materials,tinted:result.tinted}));
+   }
+   const lighting=await page.evaluate(()=>window.bakeOriginalStudio());
+   const hdr=zlib.gzipSync(Buffer.from(lighting.data,'base64'),{level:9});
+   const file='original-studio.hdr.gz';
+   fs.writeFileSync(path.join(destination,file),hdr);
+   manifest.lighting={file,width:lighting.width,height:lighting.height,bytes:hdr.length};
+   fs.writeFileSync(path.join(destination,'manifest.json'),JSON.stringify(manifest,null,2));
+   const profiles=manifest.devices.map(device=>{
+     const spec=device.spec;
+     const mmPerUnit=device.kind==='iphone' ? 37.15 : 36.66;
+     const cutout=device.kind==='iphone' ? {width:spec.island.width,height:spec.island.height,offset:spec.island.offsetY} : {width:spec.punchHole.radius*2,height:spec.punchHole.radius*2,offset:spec.punchHole.offsetY};
+     return {...device,spec:undefined,topChrome:device.kind==='iphone'?'island':'hole',asset:'assets/devices/'+device.file,
+       sourceBody:spec.body,sourceDisplay:spec.display,
+       radius:spec.body.radius*mmPerUnit,screenRadius:spec.display.radius*mmPerUnit,
+       cutout:Object.fromEntries(Object.entries(cutout).map(([key,value])=>[key,value*mmPerUnit])),
+       buttons:spec.buttons.map(button=>[button.edge==='left'?-1:1,button.y*mmPerUnit,button.length*mmPerUnit]),
+     };
+   });
+   fs.writeFileSync(path.join(root,'js/device-profiles.js'),`/* Generated by qa-build-original.cjs from react-3d-mockups@0.2.0 (MIT). */
+(function(){
+ const models=${JSON.stringify(profiles)};
+ const scale=5.4;
+ for(const model of models){
+   model.width=model.mm.width*scale;model.height=model.mm.height*scale;model.depth=model.mm.depth*scale;
+   model.displayWidth=model.sourceDisplay.width/model.sourceBody.width*model.width;
+   model.displayHeight=model.sourceDisplay.height/model.sourceBody.height*model.height;
+   model.displayZ=.006/model.sourceBody.depth*model.depth;
+   model.uiWidth=390;model.uiHeight=390*model.displayHeight/model.displayWidth;
+   model.aspect=model.uiHeight/model.uiWidth;
+   model.dimensions=model.mm.height+' × '+model.mm.width+' × '+model.mm.depth+' mm';
+ }
+ const aliases={island:'iphone-18-pro-max',notch:'galaxy-s26-ultra',hole:'iphone-18-pro',clean:'galaxy-s26'};
+ function get(id){return models.find(model=>model.id===(aliases[id]||id))||models[0];}
+ window.LT_DEVICES={models,get,scale,lighting:${JSON.stringify(manifest.lighting)},source:'area-is/react-3d-mockups@0.2.0'};
+})();\n`);
+   console.log(JSON.stringify({lighting:manifest.lighting}));
+ } finally {await browser.close();}
+ await require('./qa-build-runtime.cjs')();
+ fs.copyFileSync(path.join(root,'node_modules/react-3d-mockups/LICENSE'),path.join(destination,'LICENSE.txt'));
+})().catch(error=>{console.error(error);process.exitCode=1});
