@@ -7,7 +7,11 @@ const baseURL = process.env.PICKER_QA_URL || 'http://127.0.0.1:8877/';
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
-  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined, args: process.env.QA_RESOLVE_VERCEL ? ['--host-resolver-rules=MAP *.vercel.app 76.76.21.21'] : [], headless: true });
+  const proxyUrl = baseURL.startsWith('https:') && (process.env.HTTPS_PROXY || process.env.HTTP_PROXY);
+  const proxy = proxyUrl ? new URL(proxyUrl) : null;
+  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined,
+    proxy: proxy ? { server: proxy.origin, username: decodeURIComponent(proxy.username), password: decodeURIComponent(proxy.password), bypass: '127.0.0.1,localhost' } : undefined,
+    args: ['--disable-http2', ...(process.env.QA_RESOLVE_VERCEL && !proxy ? ['--host-resolver-rules=MAP *.vercel.app 76.76.21.21'] : [])], headless: true });
   const results = [];
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
