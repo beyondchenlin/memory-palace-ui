@@ -52,14 +52,14 @@
           </div>
         </div>
         <div class="lang-switch" role="group" aria-label="Language">
-          <button type="button" data-locale="en" class="is-on">EN</button>
-          <button type="button" data-locale="zh">中文</button>
-          <button type="button" data-locale="ja">JA</button>
-          <button type="button" data-locale="es">ES</button>
-          <button type="button" data-locale="ko">KO</button>
+          <button type="button" data-locale="en" class="is-on" aria-pressed="true">EN</button>
+          <button type="button" data-locale="zh" aria-pressed="false">中文</button>
+          <button type="button" data-locale="ja" aria-pressed="false">JA</button>
+          <button type="button" data-locale="es" aria-pressed="false">ES</button>
+          <button type="button" data-locale="ko" aria-pressed="false">KO</button>
         </div>
-        <nav class="screen-tabs" role="tablist" aria-label="Lesson screens">
-          <button type="button" class="tab is-active" data-screen="home" data-i18n="tabToday">1 · Today</button>
+        <nav class="screen-tabs" aria-label="Lesson screens">
+          <button type="button" class="tab is-active" data-screen="home" data-i18n="tabToday" aria-current="page">1 · Today</button>
           <button type="button" class="tab" data-screen="lesson" data-i18n="tabClip">2 · Clip</button>
           <button type="button" class="tab" data-screen="palace" data-i18n="tabPalace">3 · Palace</button>
           <button type="button" class="tab" data-screen="settle" data-i18n="tabSettle">4 · Settle</button>
@@ -498,10 +498,10 @@
   </div>
   <script src="js/i18n.js?v=20261016-picker-pets1"></script>
   <script src="js/device-profiles.js?v=20261016-appearance1"></script>
-  <script src="js/palace.js?v=20261016-appearance1"></script>
-  <script src="js/device-shell.js?v=20261016-picker-pets1"></script>
+  <script src="js/palace.js?v=20261016-milestone1"></script>
+  <script src="js/device-shell.js?v=20261016-milestone1"></script>
   <script src="js/device-status.js?v=20261016-appearance1"></script>
-  <script src="js/pets.js?v=20261016-release1"></script>
+  <script src="js/pets.js?v=20261016-milestone1"></script>
   <script type="module" src="js/device-live-boot.js?v=20261016-release1"></script>
 </body>
 </html>

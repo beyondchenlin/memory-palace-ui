@@ -52,6 +52,10 @@
     const lesson = document.getElementById("screen-lesson");
     const onLesson = lesson && lesson.classList.contains("is-active");
     const home = document.getElementById("screen-home");
+    // Navigation closes tone popovers, so switch screens before opening one.
+    if (!onLesson && !(home && home.classList.contains("is-active"))) {
+      document.querySelector('.tab[data-screen="home"]')?.click();
+    }
     let usePop = onLesson ? "finish-popover-lesson" : "finish-popover-home";
     let useChip = onLesson ? "finish-chip-lesson" : "finish-chip-home";
     let useMascot = onLesson ? "mascot-lesson" : "mascot-home";
@@ -71,14 +75,6 @@
     pop.classList.add("is-open");
     if (chip) chip.setAttribute("aria-expanded", "true");
     if (mascot) mascot.setAttribute("aria-expanded", "true");
-    if (!onLesson && !(home && home.classList.contains("is-active"))) {
-      const tab = document.querySelector('.tab[data-screen="home"]');
-      if (tab) tab.click();
-      requestAnimationFrame(() => {
-        const hp = document.getElementById("finish-popover-home");
-        if (hp) hp.classList.add("is-open");
-      });
-    }
   }
 
   function placeDefaultBesidePhone(el) {
@@ -131,10 +127,11 @@
     petEl.innerHTML =
       '<span class="stage-pet-bubble" aria-hidden="true"></span><span class="stage-pet-emoji" aria-hidden="true">🐸</span>';
     petEl.addEventListener("click", (e) => {
-      if (petEl.dataset.didDrag === "1") {
+      if (petEl.dataset.didDrag === "1" && e.detail !== 0) {
         petEl.dataset.didDrag = "0";
         return;
       }
+      petEl.dataset.didDrag = "0";
       e.preventDefault();
       e.stopPropagation();
       petEl.classList.remove("is-react");
@@ -146,6 +143,9 @@
     petEl.addEventListener("pointerdown", (e) => {
       if (document.body.classList.contains("is-real-phone")) return;
       if (e.button != null && e.button !== 0) return;
+      if (drag || e.isPrimary === false) return;
+      // A canceled gesture may not produce a click to consume its suppression.
+      petEl.dataset.didDrag = "0";
       e.stopPropagation();
       const rect = petEl.getBoundingClientRect();
       const stageRect = stage.getBoundingClientRect();

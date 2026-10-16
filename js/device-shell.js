@@ -60,6 +60,7 @@
   let rotY = 0;
   let backView = false;
   let dragging = false;
+  let orbitCaptureTarget = null;
   let dragMoved = false;
   let lastX = 0;
   let lastY = 0;
@@ -568,6 +569,7 @@
 
   function onPointerDown(e) {
     if (isRealPhone()) return;
+    if (dragging || e.isPrimary === false) return;
     if (e.button != null && e.button !== 0) return;
     if (!canStartOrbit(e.target)) return;
     dragging = true;
@@ -582,10 +584,9 @@
     unit.classList.add("is-dragging");
     document.body.classList.add("is-shell-orbiting");
     try {
-      // Capture on the start target so empty-page drags keep receiving moves
-      if (e.currentTarget && e.currentTarget.setPointerCapture) {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      }
+      // The document listener cannot capture pointers; the starting element can.
+      orbitCaptureTarget = e.target instanceof Element ? e.target : unit;
+      orbitCaptureTarget.setPointerCapture(e.pointerId);
     } catch (_) {}
   }
 
@@ -610,13 +611,15 @@
     if (activePointerId != null && e.pointerId !== activePointerId) return;
     dragging = false;
     activePointerId = null;
+    const captureTarget = orbitCaptureTarget;
+    orbitCaptureTarget = null;
     stage.classList.remove("is-dragging");
     unit.classList.remove("is-dragging");
     document.body.classList.remove("is-shell-orbiting");
     if (!isRealPhone() && !prefersReduced()) stage.classList.add("is-floating");
     try {
-      if (e.currentTarget && e.currentTarget.releasePointerCapture) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
+      if (captureTarget?.hasPointerCapture(e.pointerId)) {
+        captureTarget.releasePointerCapture(e.pointerId);
       }
     } catch (_) {}
   }
@@ -645,6 +648,10 @@
   document.addEventListener("pointermove", onPointerMove);
   document.addEventListener("pointerup", onPointerUp);
   document.addEventListener("pointercancel", onPointerUp);
+  document.addEventListener("lostpointercapture", onPointerUp);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && dragging) onPointerUp({ pointerId: activePointerId });
+  });
   window.addEventListener("blur", () => {
     if (dragging) onPointerUp({ pointerId: activePointerId });
   });

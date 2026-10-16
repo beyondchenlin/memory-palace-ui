@@ -63,6 +63,7 @@
     });
     document.querySelectorAll(".lang-switch button").forEach((b) => {
       b.classList.toggle("is-on", b.dataset.locale === locale);
+      b.setAttribute("aria-pressed", String(b.dataset.locale === locale));
     });
     try { document.dispatchEvent(new CustomEvent("lt-i18n-applied")); } catch (_) {}
     // Rebuild tone grids with mood labels
@@ -97,7 +98,10 @@
       s.classList.toggle("is-active", s.dataset.screen === id);
     });
     tabs.forEach((tEl) => {
-      tEl.classList.toggle("is-active", tEl.dataset.screen === id);
+      const selected = tEl.dataset.screen === id;
+      tEl.classList.toggle("is-active", selected);
+      if (selected) tEl.setAttribute("aria-current", "page");
+      else tEl.removeAttribute("aria-current");
     });
   }
 
