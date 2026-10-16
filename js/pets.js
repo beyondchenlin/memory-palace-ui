@@ -171,7 +171,13 @@
         badge.setAttribute("aria-hidden", "true");
         btn.appendChild(badge);
       }
-      badge.textContent = pet.emoji;
+      let glyph = badge.querySelector(".mascot-pet-glyph");
+      if (!glyph) {
+        glyph = document.createElement("span");
+        glyph.className = "mascot-pet-glyph";
+        badge.replaceChildren(glyph);
+      }
+      glyph.textContent = pet.emoji;
       btn.title = t(pet.nameKey, pet.id) + " · " + t("mascotAria", "Open today's tone");
     });
   }
@@ -205,13 +211,15 @@
     document.querySelectorAll(".finish-swatch").forEach((btn) => {
       const id = btn.dataset.finish;
       const pet = petFor(id);
+      const circle = btn.querySelector(".sw");
+      if (!circle) return;
       let slot = btn.querySelector(".swatch-pet");
       if (!slot) {
         slot = document.createElement("span");
         slot.className = "swatch-pet";
         slot.setAttribute("aria-hidden", "true");
-        btn.appendChild(slot);
       }
+      if (slot.parentElement !== circle) circle.appendChild(slot);
       slot.textContent = pet.emoji;
     });
   }
@@ -240,6 +248,16 @@
       placeDefaultBesidePhone(petEl);
     }
   });
+
+  const pickerDock = document.getElementById("shell-picker-dock");
+  if (pickerDock) {
+    const followLayout = new ResizeObserver(() => {
+      if (petEl && !petEl.dataset.userMoved && !document.body.classList.contains("is-real-phone")) {
+        placeDefaultBesidePhone(petEl);
+      }
+    });
+    followLayout.observe(pickerDock);
+  }
 
   function boot() {
     decorateSwatches();

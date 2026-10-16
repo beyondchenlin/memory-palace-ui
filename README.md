@@ -3,6 +3,9 @@
 Working title: **影视记忆宫殿课** — Duolingo-like lesson shell + cartoon HUD.  
 **Not merged into LingoTrace Studio.** Do not deploy onto `lingotrace-delta`.
 
+Current 3D presentation and the selected SVG baseline: [LIVE-3D.md](LIVE-3D.md).
+The app UI is shared with that reference; only the desktop device presentation differs.
+
 ## Open locally
 ```bash
 cd /workspace/english-tool-deploys/memory-palace-ui

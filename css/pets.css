@@ -16,31 +16,40 @@
   font-size: 1.45rem;
   line-height: 1;
   filter: none;
-  animation: petBob 2.8s ease-in-out infinite;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   pointer-events: none;
   z-index: 2;
+}
+.mascot-pet-glyph {
+  display: block;
+  line-height: 1;
+  transform: translateY(-.035em);
 }
 .mascot-btn-mini .mascot-pet,
 .mascot-mini .mascot-pet {
   font-size: 1.05rem;
 }
 
-@keyframes petBob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
-
 .finish-swatch {
   position: relative;
 }
-.finish-swatch .swatch-pet {
+.finish-swatch .sw {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.finish-swatch .sw .swatch-pet {
   position: absolute;
-  top: 4px;
-  right: 6px;
-  font-size: 0.85rem;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  font-size: 1rem;
   line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   pointer-events: none;
-  opacity: 0.95;
+  opacity: 1;
 }
 
 /* Desktop pet — beside phone, gentle bob ONLY (no roam) */

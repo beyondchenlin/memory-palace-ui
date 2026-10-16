@@ -34,15 +34,25 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
+  color: #eef3ea;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
   min-height: 100%;
+  background: var(--bg-stage);
+}
+
+/* One continuous wash, including the space below the demo on tall screens. */
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(1000px 520px at 15% 0%, color-mix(in srgb, var(--page-wash, #e5f6d4) 45%, transparent), transparent 58%),
     radial-gradient(800px 480px at 90% 10%, color-mix(in srgb, var(--page-wash-soft, #eef3ea) 38%, transparent), transparent 52%),
     linear-gradient(165deg, color-mix(in srgb, var(--page-wash, #e5f6d4) 22%, #1a2332) 0%, var(--bg-stage) 55%, color-mix(in srgb, var(--page-wash-soft, #eef3ea) 10%, #121820) 100%);
   transition: background 0.55s ease;
-  color: #eef3ea;
-  font-family: var(--font);
-  -webkit-font-smoothing: antialiased;
 }
 
 button {
