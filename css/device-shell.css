@@ -845,23 +845,10 @@ body:not(.is-real-phone) .stage-bar { margin-bottom: 28px; }
 }
 .shell-dd { position: relative; }
 .shell-icon-btn {
-  width: 44px;
-  gap: 4px;
+  width: 40px;
   padding: 0;
 }
 .shell-icon-btn:active { transform: scale(.95); }
-.shell-trigger-chevron {
-  width: 10px;
-  height: 10px;
-  opacity: .6;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform .22s ease;
-}
-.shell-icon-btn[aria-expanded="true"] .shell-trigger-chevron { transform: rotate(180deg); opacity: 1; }
 .shell-mini, .shell-symbol-slot { display: grid; place-items: center; width: 24px; height: 30px; line-height: 0; flex-shrink: 0; }
 /* Optical balance: a tall narrow phone needs more height than a solid disc. */
 .shell-mini .picker-phone { width: 19px; height: 30px; }

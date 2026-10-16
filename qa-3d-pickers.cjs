@@ -47,7 +47,7 @@ const baseURL = process.env.PICKER_QA_URL || 'http://127.0.0.1:8877/';
     const triggerSizes=await page.locator('.shell-icon-btn').evaluateAll(items=>items.map(el=>{
       const rect=el.getBoundingClientRect();return {w:rect.width,h:rect.height};
     }));
-    assert.deepEqual(triggerSizes,[{w:44,h:40},{w:44,h:40}]);
+    assert.deepEqual(triggerSizes,[{w:40,h:40},{w:40,h:40}]);
     const triggerIcons=await page.locator('#shell-mini,.shell-symbol-slot').evaluateAll(items=>items.map(el=>{
       const rect=el.getBoundingClientRect();return {w:rect.width,h:rect.height};
     }));
