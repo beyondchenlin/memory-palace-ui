@@ -111,6 +111,9 @@ export function createDeviceMesh({ mount, screenEl, unit, rig }) {
   const antenna = new THREE.MeshStandardMaterial({ color: '#9fa6af', metalness: 0.1, roughness: 0.7 });
   const lens = new THREE.MeshPhysicalMaterial({ color: '#06101c', metalness: 0.35, roughness: 0.12, clearcoat: 1 });
   const materials = [metal, trim, glass, back, antenna, lens];
+  const screenLayer = document.createElement('div');
+  screenLayer.className = 'device-screen-layer';
+  rig.appendChild(screenLayer);
 
   let modelId, finishId, disposed = false, raf = 0;
   let targetX = 0, targetY = 0, viewX = 0, viewY = 0;
@@ -219,7 +222,12 @@ export function createDeviceMesh({ mount, screenEl, unit, rig }) {
     projection = { tl: points[0], tr: points[1], br: points[2], bl: points[3] };
     const xs = points.map(p => p.x), ys = points.map(p => p.y);
     projection.aabb = { left: Math.min(...xs) - scrollX, top: Math.min(...ys) - scrollY, width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
-    screenEl.style.transform = screenMatrix(points);
+    // Share the rig's layout origin with the canvas. The browser then moves both
+    // layers atomically when a picker animates, even between JavaScript frames.
+    const origin = screenLayer.getBoundingClientRect();
+    screenEl.style.transform = screenMatrix(points.map(p => ({
+      x: p.x - scrollX - origin.left, y: p.y - scrollY - origin.top,
+    })));
   }
 
   function render(time) {
@@ -261,7 +269,7 @@ export function createDeviceMesh({ mount, screenEl, unit, rig }) {
     event.preventDefault();
     screenEl.dispatchEvent(new CustomEvent('lt-3d-context-lost', { bubbles: true }));
   });
-  document.body.appendChild(screenEl);
+  screenLayer.appendChild(screenEl);
   screenEl.classList.add('is-live-3d-screen');
   setModelUiId(unit.dataset.model);
   setFinish(unit.dataset.shell);
@@ -286,6 +294,7 @@ export function createDeviceMesh({ mount, screenEl, unit, rig }) {
       renderer.dispose();
       renderer.forceContextLoss();
       mount.remove();
+      screenLayer.remove();
     },
   };
 }

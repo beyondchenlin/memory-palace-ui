@@ -13,6 +13,12 @@ body.has-live-3d .device-3d { visibility: hidden; }
   z-index: 2;
 }
 .device-webgl { display: block; width: 100%; height: 100%; pointer-events: none; }
+.device-screen-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
 .device-screen.is-live-3d-screen {
   position: absolute !important;
   inset: auto !important;
