@@ -33,14 +33,23 @@
 .finish-swatch {
   position: relative;
 }
-.finish-swatch .swatch-pet {
+.finish-swatch .sw {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.finish-swatch .sw .swatch-pet {
   position: absolute;
-  top: 4px;
-  right: 6px;
-  font-size: 0.85rem;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  max-width: none;
+  font-size: 1rem;
   line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   pointer-events: none;
-  opacity: 0.95;
+  opacity: 1;
 }
 
 /* Desktop pet — beside phone, gentle bob ONLY (no roam) */
